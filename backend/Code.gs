@@ -11,6 +11,7 @@ const CONFIG = {
   PRODUCTS_SHEET: 'Tabellenblatt1',
   CREATORS_SHEET: 'Creators',
   // Formel für Spalte H (Schnäppchenpreis). {r} wird durch die Zeilennummer ersetzt.
+  // Muss zur Preislogik der Website passen (PRICING in assets/js/api.js).
   PRICE_FORMULA: '=IF(F{r}="","",IF(I{r}=0,ROUND(F{r}*0.82,2),ROUND(F{r}*(1-I{r}),2)))',
   CATEGORIES: ['Tech', 'Beauty', 'Haushalt', 'Sonstiges'],
   THUMB_CACHE_SECONDS: 21600, // 6 Stunden
@@ -322,7 +323,7 @@ function normalizeUser_(v) {
 
 function parseRate_(v) {
   const n = Number(v);
-  if (!isFinite(n) || n < 0 || n > 1) throw new Error('Ungültiger Steuersatz.');
+  if (!isFinite(n) || n < 0 || n > 0.6) throw new Error('Ungültiger Steuersatz (0–60 %).');
   return Math.round(n * 10000) / 10000;
 }
 

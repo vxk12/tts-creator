@@ -46,8 +46,34 @@
     return `https://t.me/${cfg.TELEGRAM_BOT}?start=kauf_${ref}`;
   };
 
-  const salePrice = (purchase, rate) =>
-    Math.round(purchase * (rate === 0 ? 0.82 : 1 - rate) * 100) / 100;
+  /* ---------- Preislogik (muss zur Formel in Spalte H passen, siehe backend/Code.gs) ----------
+     Status_Code 0     → Preis = Einkaufspreis × 0,82 (pauschal 18 % Abschlag)
+     Status_Code > 0   → Preis = Einkaufspreis × (1 − Status_Code)                         */
+  const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+  const PRICING = {
+    ZERO_RATE_FACTOR: 0.82,
+    MAX_RATE_PERCENT: 60,
+    BRACKETS: [
+      { label: 'Unter 12.300 €', sub: 'pro Jahr', code: 0.0 },
+      { label: '15.000 € – 60.000 €', sub: 'pro Jahr', code: 0.3 },
+      { label: 'Über 66.000 €', sub: 'pro Jahr', code: 0.42 },
+    ],
+    factor(rate) { return rate === 0 ? PRICING.ZERO_RATE_FACTOR : 1 - rate; },
+    price(purchase, rate) { return round2(purchase * PRICING.factor(rate)); },
+    breakdown(purchase, rate) {
+      const price = PRICING.price(purchase, rate);
+      return { purchase: round2(purchase), rate, factor: PRICING.factor(rate), price, deduction: round2(purchase - price) };
+    },
+    /** "27,90" / "27.90" / "27 €" → 27.9 (oder NaN) */
+    parseMoney(v) {
+      const s = String(v == null ? '' : v).replace(/\s|€/g, '');
+      if (!s) return NaN;
+      const norm = /,\d{1,2}$/.test(s) ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+      return /^\d+(\.\d+)?$/.test(norm) ? Number(norm) : NaN;
+    },
+  };
+  const pct = (rate) => (rate * 100).toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' %';
+  const salePrice = PRICING.price;
 
   /* ---------- Live-API ---------- */
   async function apiGet(action) {
@@ -164,7 +190,7 @@
     if (!DEMO) { sessionStore.clear(); return apiPost({ action: 'addProduct', ...creds, ...product }); }
     await delay(500);
     const c = demo.auth(creds);
-    const purchase = Number(String(product.price).replace(',', '.'));
+    const purchase = PRICING.parseMoney(product.price);
     const p = {
       id: 'local-' + Date.now(),
       userId: c.userId,
@@ -197,7 +223,7 @@
   });
 
   window.TTS = {
-    DEMO, CATEGORIES, session, fmtEUR, esc, safeUrl, telegramBotLink, buyLink,
+    DEMO, CATEGORIES, PRICING, pct, session, fmtEUR, esc, safeUrl, telegramBotLink, buyLink,
     getProducts, register, login, addProduct, updateProfile,
   };
 })();

@@ -5,140 +5,144 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Creator-Dashboard – TTS Deals</title>
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#0a0a0b">
+  <meta name="theme-color" content="#0b0b0d">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/store.css">
+  <script>setTimeout(function () { if (!window.__pageReady) document.documentElement.classList.add('no-motion'); }, 5000);</script>
+  <script type="importmap">
+  { "imports": { "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.1.18/+esm" } }
+  </script>
 </head>
-<body class="creator-body">
-  <div class="demo-banner" id="demoBanner" hidden>Demo-Modus: Daten werden nur in diesem Browser gespeichert.</div>
+<body>
+  <main class="page">
+    <section class="dash" aria-label="Creator-Dashboard">
 
-  <header class="topbar">
-    <div class="wrap topbar__inner">
-      <a class="logo" href="./"><svg class="logo__svg" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5.5"/><path d="M10 8.6v6.8l5.4-3.4z"/></g></svg>TTS Deals <span class="logo__tag">Creator</span></a>
-      <button class="btn btn--ghost btn--sm" id="logout" type="button" hidden>Abmelden</button>
-    </div>
-  </header>
-
-  <main class="wrap wrap--narrow">
-    <!-- Login -->
-    <form class="panel" id="loginView" novalidate hidden>
-      <p class="step-label">Creator-Bereich</p>
-      <h1 class="q">Einloggen</h1>
-      <p class="q-sub">Melde dich mit deinem TikTok-Username und deinem Creator-Key aus der Registrierung an.</p>
-      <div class="alert alert--error" id="loginError" role="alert" hidden></div>
-      <div class="field">
-        <label for="loginUser">TikTok-Username</label>
-        <div class="input-wrap">
-          <span class="pre">@</span>
-          <input class="input input--prefix" id="loginUser" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+      <!-- Login -->
+      <form class="loginbox" id="loginView" novalidate hidden>
+        <p class="wstep__label">Creator-Bereich</p>
+        <h1 class="wq">Einloggen</h1>
+        <p class="wsub">Melde dich mit deinem TikTok-Username und dem Creator-Key aus der Registrierung an.</p>
+        <div class="alert--error" id="loginError" role="alert" hidden style="margin-top:1.5rem"></div>
+        <div class="fld">
+          <label class="flabel" for="loginUser">TikTok-Username</label>
+          <div class="inp-at"><span>@</span><input class="inp" id="loginUser" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
         </div>
-      </div>
-      <div class="field">
-        <label for="loginKey">Creator-Key</label>
-        <input class="input" id="loginKey" type="password" autocomplete="current-password" spellcheck="false" required>
-      </div>
-      <button class="btn btn--accent btn--block btn--lg" id="loginBtn" type="submit">Einloggen</button>
-      <p class="center small muted" style="margin:18px 0 0">Noch kein Creator? <a class="link" href="creator.html">Jetzt registrieren</a></p>
-    </form>
-
-    <!-- Dashboard -->
-    <div id="dashView" hidden>
-      <div class="dash-head">
-        <div>
-          <h1 id="hello"></h1>
-          <p>Dein Creator-Dashboard</p>
+        <div class="fld">
+          <label class="flabel" for="loginKey">Creator-Key</label>
+          <input class="inp" id="loginKey" type="password" autocomplete="current-password" spellcheck="false">
         </div>
-      </div>
-
-      <div class="stats">
-        <div class="stat"><span>Status_Code</span><b class="accent" id="statRate"></b></div>
-        <div class="stat"><span>Inserate</span><b id="statCount">–</b></div>
-        <div class="stat" style="grid-column: span 2" id="statTgWrap"><span>Telegram</span><b id="statTg" class="small" style="font-size:15px"></b></div>
-      </div>
-
-      <!-- Stufe 2: Web-Eingabemaske -->
-      <form class="panel" id="productForm" novalidate>
-        <h2>Neues Produkt inserieren</h2>
-        <p class="lead">Lieber über die Website statt Telegram? Einfach die drei Felder ausfüllen – das Produkt landet direkt im Schaufenster.</p>
-        <div class="alert alert--error" id="productError" role="alert" hidden></div>
-
-        <div class="field">
-          <label for="shopLink">TikTok Shop Produkt-Link</label>
-          <input class="input" id="shopLink" type="url" inputmode="url" placeholder="https://vm.tiktok.com/…" autocomplete="off" required>
+        <div class="wactions">
+          <button class="pill pill--neon pill--block" id="loginBtn" type="submit">Einloggen <span class="arr"><svg><use href="#i-arrow"/></svg></span></button>
         </div>
-        <div class="field">
-          <label for="price">Einkaufspreis</label>
-          <div class="input-wrap">
-            <input class="input input--suffix" id="price" type="text" inputmode="decimal" placeholder="z. B. 27.90" autocomplete="off" required>
-            <span class="suf">€</span>
-          </div>
-          <p class="hint">Nur die Zahl eingeben.</p>
-        </div>
-        <div class="field">
-          <label for="videoLink">Dein TikTok-Video-Link</label>
-          <input class="input" id="videoLink" type="url" inputmode="url" placeholder="https://www.tiktok.com/@…/video/…" autocomplete="off" required>
-        </div>
-
-        <details class="optional">
-          <summary>Optional: Name, Kategorie &amp; Beschreibung</summary>
-          <div class="field">
-            <label for="pName">Produktname</label>
-            <input class="input" id="pName" maxlength="120" placeholder="z. B. Medicube Booster Pro">
-          </div>
-          <div class="field">
-            <label for="pCat">Kategorie</label>
-            <select class="select input" id="pCat">
-              <option value="">Bitte wählen</option>
-              <option>Tech</option><option>Beauty</option><option>Haushalt</option><option>Sonstiges</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="pDesc">Beschreibung</label>
-            <textarea class="input" id="pDesc" rows="4" maxlength="1500" placeholder="z. B. Einmal für das Review ausgepackt, Zubehör vollständig, Originalverpackung vorhanden."></textarea>
-            <p class="hint">Erscheint auf der Produktseite.</p>
-          </div>
-        </details>
-
-        <div class="auto-note">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
-          <span>Deine User_ID <b id="noteUser"></b> und dein Status_Code <b id="noteRate"></b> werden automatisch eingetragen. Der Schnäppchenpreis wird sofort im Google Sheet berechnet.</span>
-        </div>
-
-        <button class="btn btn--accent btn--block btn--lg" id="productBtn" type="submit">Produkt inserieren</button>
-        <div class="result-card" id="result" hidden></div>
+        <p class="fhint" style="margin-top:1.25rem;text-align:center">Noch kein Creator? <a class="link-light" href="creator.html">Jetzt registrieren</a></p>
       </form>
 
-      <!-- Telegram-Profil -->
-      <form class="panel" id="profileForm" novalidate>
-        <h2>Telegram-Kontakt</h2>
-        <p class="lead">Käufer werden über „Jetzt kaufen“ direkt in deinen privaten Telegram-Chat geleitet.</p>
-        <div class="alert" id="profileMsg" role="status" hidden></div>
-        <div class="field">
-          <label for="tgUser">Dein Telegram-Username</label>
-          <div class="input-wrap">
-            <span class="pre">@</span>
-            <input class="input input--prefix" id="tgUser" autocapitalize="off" spellcheck="false" placeholder="deinname">
+      <!-- Dashboard -->
+      <div id="dashView" hidden>
+        <div class="dash__head">
+          <div>
+            <span class="eyebrow eyebrow--light">Creator-Dashboard</span>
+            <h1 class="dash__title" id="hello"></h1>
+          </div>
+          <button class="link-light" id="logout" type="button">Abmelden</button>
+        </div>
+
+        <div class="dash__stats">
+          <div class="dstat"><b id="statRate">–</b><span>Status_Code (Spalte C)</span></div>
+          <div class="dstat"><b id="statFactor">–</b><span>Dein Preisfaktor</span></div>
+          <div class="dstat"><b id="statCount">–</b><span>Inserate</span></div>
+        </div>
+
+        <!-- Stufe 2: Web-Eingabemaske -->
+        <div class="dash__grid">
+          <form class="dcard" id="productForm" novalidate data-spring>
+            <h2>Neues Produkt inserieren</h2>
+            <p class="dcard__lead">Lieber über die Website statt Telegram? Drei Felder – daraus entsteht direkt eine neue Zeile in unserer Tabelle.</p>
+            <div class="alert--error" id="productError" role="alert" hidden style="margin-top:1.25rem"></div>
+
+            <div class="fld">
+              <label class="flabel" for="shopLink">TikTok Shop Produkt-Link <small>(Spalte E)</small></label>
+              <input class="inp" id="shopLink" type="url" inputmode="url" placeholder="https://vm.tiktok.com/…" autocomplete="off">
+            </div>
+            <div class="fld">
+              <label class="flabel" for="price">Einkaufspreis <small>(Spalte F)</small></label>
+              <div class="money" style="margin-top:0">
+                <input id="price" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
+                <span>€</span>
+              </div>
+              <p class="fhint">Nur die Zahl, z. B. 27,90</p>
+            </div>
+            <div class="fld">
+              <label class="flabel" for="videoLink">Dein TikTok-Video-Link <small>(Spalte G)</small></label>
+              <input class="inp" id="videoLink" type="url" inputmode="url" placeholder="https://www.tiktok.com/@…/video/…" autocomplete="off">
+            </div>
+
+            <details class="opt">
+              <summary>Optional: Name, Kategorie &amp; Beschreibung<svg><use href="#i-chevron"/></svg></summary>
+              <div>
+                <div class="fld">
+                  <label class="flabel" for="pName">Produktname</label>
+                  <input class="inp" id="pName" maxlength="120" placeholder="z. B. Medicube Booster Pro">
+                </div>
+                <div class="fld">
+                  <label class="flabel" for="pCat">Kategorie</label>
+                  <select class="inp" id="pCat">
+                    <option value="">Bitte wählen</option>
+                    <option>Tech</option><option>Beauty</option><option>Haushalt</option><option>Sonstiges</option>
+                  </select>
+                </div>
+                <div class="fld">
+                  <label class="flabel" for="pDesc">Beschreibung</label>
+                  <textarea class="inp" id="pDesc" rows="4" maxlength="1500" placeholder="z. B. Einmal für das Review ausgepackt, Zubehör vollständig."></textarea>
+                </div>
+              </div>
+            </details>
+
+            <div class="auto-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>
+              <span>Automatisch ergänzt: deine User_ID <b id="noteUser"></b> und dein Status_Code <b id="noteRate"></b>. Die Formel in Spalte H berechnet daraus sofort den Schnäppchenpreis.</span>
+            </div>
+
+            <div class="dash__submit">
+              <button class="pill pill--neon pill--block" id="productBtn" type="submit">Produkt inserieren <span class="arr"><svg><use href="#i-arrow"/></svg></span></button>
+            </div>
+          </form>
+
+          <div class="calc__result" id="result" data-spring aria-live="polite">
+            <span class="calc__rl" id="resultLabel">Dein Schnäppchenpreis</span>
+            <output class="calc__price" id="resultPrice" for="price">– €</output>
+            <dl class="calc__rows" id="resultRows"></dl>
+            <p class="calc__note" id="resultNote">Gib deinen Einkaufspreis ein – der Preis wird live berechnet.</p>
           </div>
         </div>
-        <div class="actions" style="margin-top:0">
-          <button class="btn" type="submit" id="profileBtn">Speichern</button>
-          <a class="btn btn--video" id="botLink" target="_blank" rel="noopener noreferrer">Bot verbinden</a>
-        </div>
-      </form>
 
-      <section class="panel">
-        <h2>Deine Inserate</h2>
-        <p class="lead">Live aus dem Schaufenster.</p>
-        <ul class="mini-list" id="myList"><li class="muted">Wird geladen …</li></ul>
-      </section>
-    </div>
+        <div class="dash__lower">
+          <form class="dcard" id="profileForm" novalidate data-spring>
+            <h2>Telegram</h2>
+            <p class="dcard__lead">Käufer werden über „Jetzt kaufen“ in deinen privaten Telegram-Chat geleitet. Produkte kannst du auch direkt über unseren Bot hochladen.</p>
+            <div class="tgrow">
+              <div class="inp-at"><span>@</span><input class="inp" id="tgUser" autocapitalize="off" spellcheck="false" placeholder="dein_telegram_name" aria-label="Dein Telegram-Username"></div>
+              <button class="pill pill--light" type="submit" id="profileBtn">Speichern</button>
+            </div>
+            <div id="profileMsg" role="status" hidden></div>
+            <div class="wactions"><a class="pill pill--ghost" id="botLink" target="_blank" rel="noopener noreferrer">Mit Telegram-Bot verbinden <span class="arr"><svg><use href="#i-arrow"/></svg></span></a></div>
+          </form>
+
+          <section class="dcard" data-spring aria-labelledby="myTitle">
+            <h2 id="myTitle">Deine Inserate</h2>
+            <p class="dcard__lead">Einkaufspreis und berechneter Preis aus der Tabelle.</p>
+            <ul class="mylist" id="myList"><li><span class="empty-li">Wird geladen …</span></li></ul>
+          </section>
+        </div>
+      </div>
+    </section>
   </main>
 
   <script src="assets/js/config.js"></script>
   <script src="assets/js/api.js"></script>
-  <script src="assets/js/dashboard.js"></script>
+  <script type="module" src="assets/js/dashboard.js"></script>
 </body>
 </html>

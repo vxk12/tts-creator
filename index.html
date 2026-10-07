@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>TTS Deals – Fast wie neu. Clever gespart.</title>
-  <meta name="description" content="Produkte, die TikTok Shop Creator nur einmal für ein Testvideo ausgepackt haben – mit Video-Nachweis, direkt vom Creator.">
+  <title>TTS Deals für Creator – Dein Preis, automatisch berechnet</title>
+  <meta name="description" content="Für TikTok Shop Creator: Produkte aus deinen Testvideos weiterverkaufen. Registrieren, Produkt einstellen – der Preis wird automatisch aus Einkaufspreis und Steuersatz berechnet.">
   <meta name="theme-color" content="#0b0b0d">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,109 +39,83 @@
       </div>
 
       <div class="hero__title-wrap">
-        <h1 class="hero__title" id="heroTitle" data-words="Fast Wie Neu">Fast Wie Neu</h1>
+        <h1 class="hero__title" id="heroTitle" data-words="Dein Preis">Dein Preis</h1>
       </div>
 
       <div class="hero__bottom">
-        <p class="hero__tagline" id="heroTagline" data-lines="Einmal getestet,|clever gespart">Einmal getestet, clever gespart</p>
+        <p class="hero__tagline" id="heroTagline" data-lines="Automatisch berechnet,|in Sekunden live">Automatisch berechnet, in Sekunden live</p>
 
         <div class="hero__cluster">
           <div class="slider" id="slider" data-spring>
             <div class="slider__stage" id="sliderStage"></div>
-            <div class="dots dots--light" id="sliderDots" role="group" aria-label="Deal-Vorschau"></div>
+            <div class="dots dots--light" id="sliderDots" role="group" aria-label="Preis-Beispiele"></div>
           </div>
 
           <article class="member glass" id="member" data-spring>
             <div class="member__col">
-              <b class="member__value" id="avgSave">–</b>
+              <b class="member__value">2 Wege</b>
               <div class="member__dots" aria-hidden="true"><i style="background:#00ff66"></i><i style="background:#ffffff"></i><i style="background:#3a3a40"></i><i style="background:#9a9aa3"></i></div>
-              <span class="member__cap">Ø unter Originalpreis</span>
+              <span class="member__cap">Telegram oder Web-Dashboard</span>
             </div>
-            <img src="assets/img/unbox.webp" alt="Frisch ausgepacktes Produkt im Karton" loading="lazy">
+            <img src="assets/img/creator-live.webp" alt="Smartphone auf Stativ filmt einen Creator" loading="lazy">
           </article>
         </div>
       </div>
     </section>
 
-    <!-- ENTDECKEN (Kategorie-Kacheln + Karussell) -->
-    <section class="discover" id="entdecken" aria-label="Entdecken">
-      <div class="tiles4" id="tiles4"></div>
-      <div class="rail" id="railTop"></div>
-    </section>
-
-    <!-- TRUST -->
-    <section class="trust" id="trust" aria-labelledby="trust-title">
-      <div class="trust__top">
-        <div class="pct" data-spring id="pct"><b>1x</b><span>Ausgepackt – nur fürs Testvideo</span></div>
-        <article class="badge-card" data-spring id="badgeCard">
-          <span class="badge-card__idx">#01</span>
-          <div>
-            <h3>Direkt vom Creator</h3>
-            <p>Jedes Produkt stammt von einem TikTok Shop Creator und wurde nur einmal für ein Testvideo ausgepackt. Das Video siehst du, bevor du kaufst.</p>
-          </div>
-        </article>
-      </div>
-
-      <h2 class="ghost" id="trust-title" aria-label="Einmal gefilmt, fast neu">
-        <span class="ghost__row"><span class="clip ghost__w" data-gw="0"><span></span></span><span class="clip ghost__w" data-gw="1"><span></span></span></span>
-        <span class="ghost__row"><span class="clip ghost__w is-ink" data-gw="2"><span></span></span><span class="clip ghost__w" data-gw="3"><span></span></span></span>
-      </h2>
-
-      <div class="coach">
-        <div id="coach" data-spring><a class="coach__link" id="coachLink" href="shop.html?cat=Tech"><figure>
-          <img id="coachImg" src="assets/img/cat-tech.webp" alt="" loading="lazy">
-          <figcaption class="cap"><b id="coachName">Tech</b><span id="coachRole"></span></figcaption>
-        </figure></a></div>
-      </div>
-
-      <div class="trust__controls">
-        <button class="arrow-btn" id="trustPrev" type="button" aria-label="Vorherige Kategorie"><span class="hv"><span class="flip"><svg><use href="#i-arrow"/></svg></span></span></button>
-        <div class="dots" id="trustDots" role="group" aria-label="Kategorien"></div>
-        <button class="arrow-btn arrow-btn--solid" id="trustNext" type="button" aria-label="Nächste Kategorie"><span class="hv"><svg><use href="#i-arrow"/></svg></span></button>
-      </div>
-    </section>
-
-    <!-- DEALS -->
-    <section class="deals" id="deals" aria-labelledby="deals-title">
-      <div class="deals__head">
-        <div>
-          <span class="eyebrow eyebrow--light">Live-Deals</span>
-          <h2 class="h-stack" id="deals-title" data-lines="Frisch|ausgepackt">Frisch ausgepackt</h2>
-        </div>
-        <p class="deals__count" id="count" aria-live="polite"></p>
-      </div>
-
-      <div class="toolbar">
-        <div class="chips" id="chips" role="group" aria-label="Kategorien filtern"></div>
-      </div>
-
-      <ul class="grid" id="grid"></ul>
-      <div class="empty" id="empty" hidden></div>
-      <div class="deals__more"><a class="pill pill--light" id="allDeals" href="shop.html">Alle Deals ansehen <span class="arr"><svg><use href="#i-arrow"/></svg></span></a></div>
-    </section>
-
-    <!-- ABLAUF -->
-    <section class="steps" id="ablauf" aria-labelledby="ablauf-title">
-      <span class="eyebrow">So funktioniert's</span>
-      <h2 class="h-stack" id="ablauf-title" data-lines="In vier Schritten|zum Deal">In vier Schritten zum Deal</h2>
+    <!-- WORKFLOW -->
+    <section class="steps steps--plain" id="ablauf" aria-labelledby="ablauf-title">
+      <span class="eyebrow">Dein Workflow</span>
+      <h2 class="h-stack" id="ablauf-title" data-lines="In vier Schritten|zum ersten Deal">In vier Schritten zum ersten Deal</h2>
       <ul>
-        <li><a href="shop.html"><div class="row" data-spring><span class="row__idx">01</span><div class="row__txt"><h3 class="row__name">Deal entdecken</h3><p class="row__desc">Stöbere durch Produkte, die Creator nur einmal für ein Video ausgepackt haben.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
-        <li><a href="#deals"><div class="row" data-spring><span class="row__idx">02</span><div class="row__txt"><h3 class="row__name">Video-Nachweis ansehen</h3><p class="row__desc">Jedes Angebot verlinkt das echte TikTok-Testvideo – du siehst den Zustand vorher.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
-        <li><a href="#faq"><div class="row" data-spring><span class="row__idx">03</span><div class="row__txt"><h3 class="row__name">Creator anschreiben</h3><p class="row__desc">Mit „Jetzt kaufen“ landest du direkt im privaten Telegram-Chat des Creators.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
-        <li><a href="shop.html?sort=discount"><div class="row" data-spring><span class="row__idx">04</span><div class="row__txt"><h3 class="row__name">Clever sparen</h3><p class="row__desc">Du zahlst deutlich weniger als den Originalpreis im TikTok Shop.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
+        <li><a href="creator.html"><div class="row" data-spring><span class="row__idx">01</span><div class="row__txt"><h3 class="row__name">Registrieren</h3><p class="row__desc">Kurzer Check als TikTok Shop Creator, dein TikTok-Username und dein Steuersatz – einmalig.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
+        <li><a href="#wege"><div class="row" data-spring><span class="row__idx">02</span><div class="row__txt"><h3 class="row__name">Mit Telegram verbinden</h3><p class="row__desc">Ein Tipp verbindet dein Profil mit unserem Bot. Dort lädst du künftig Produkte hoch.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
+        <li><a href="#wege"><div class="row" data-spring><span class="row__idx">03</span><div class="row__txt"><h3 class="row__name">Produkt einstellen</h3><p class="row__desc">Shop-Link, Einkaufspreis und Video-Link – per Telegram oder im Web-Dashboard.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
+        <li><a href="#rechner"><div class="row" data-spring><span class="row__idx">04</span><div class="row__txt"><h3 class="row__name">Preis steht sofort</h3><p class="row__desc">Wir berechnen den Schnäppchenpreis automatisch aus Einkaufspreis und Steuersatz.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
       </ul>
     </section>
 
-    <!-- FÜR CREATOR -->
-    <section class="creators" id="creator" aria-labelledby="creator-title">
+    <!-- PREISRECHNER -->
+    <section class="calc" id="rechner" aria-labelledby="calc-title">
+      <div class="calc__head">
+        <div>
+          <span class="eyebrow eyebrow--light">Preisrechner</span>
+          <h2 class="h-stack" id="calc-title" data-lines="Dein Preis,|sofort berechnet">Dein Preis, sofort berechnet</h2>
+        </div>
+        <p class="calc__lead">Gib deinen Einkaufspreis ein und wähle deinen Steuersatz. Genau so rechnet später auch unsere Tabelle, wenn du ein Produkt einstellst.</p>
+      </div>
+
+      <div class="calc__grid">
+        <div class="calc__inputs" id="calcInputs" data-spring>
+          <label class="calc__label" for="calcPrice">Einkaufspreis im TikTok Shop</label>
+          <div class="money">
+            <input id="calcPrice" type="text" inputmode="decimal" value="27,00" autocomplete="off" aria-describedby="calcErr">
+            <span>€</span>
+          </div>
+          <p class="field-err" id="calcErr" hidden>Bitte eine Zahl eingeben, z. B. 27,90</p>
+          <div class="calc__rate" id="calcRate"></div>
+        </div>
+
+        <div class="calc__result" id="calcResult" data-spring aria-live="polite">
+          <span class="calc__rl">Dein Schnäppchenpreis im Shop</span>
+          <output class="calc__price" id="calcOut" for="calcPrice">–</output>
+          <dl class="calc__rows" id="calcRows"></dl>
+          <p class="calc__note" id="calcNote"></p>
+          <a class="pill pill--solid" id="calcCta" href="creator.html">Mit diesem Steuersatz registrieren <span class="arr"><svg><use href="#i-arrow"/></svg></span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ZWEI WEGE -->
+    <section class="creators" id="wege" aria-labelledby="wege-title">
       <div class="creators__grid">
         <div class="creators__intro">
           <img class="creators__icon" id="creatorIcon" data-spring src="assets/img/unbox-hands.webp" alt="Hände halten ein ausgepacktes Produkt" loading="lazy">
-          <h2 class="h-stack" id="creator-title" data-lines="Verkauf|deine|Testprodukte">Verkauf deine Testprodukte</h2>
-          <p class="creators__body" id="creatorBody">Du bist offizieller TikTok Shop Creator? Stell Produkte aus deinen Testvideos in Sekunden ein – per Telegram-Bot oder direkt im Web-Dashboard. Den Preis berechnen wir automatisch.</p>
+          <h2 class="h-stack" id="wege-title" data-lines="Zwei Wege|zum|Inserat">Zwei Wege zum Inserat</h2>
+          <p class="creators__body" id="wegeBody">Lade Produkte direkt im Telegram-Chat hoch oder nutze das Web-Dashboard. In beiden Fällen landen Shop-Link, Einkaufspreis und Video-Link in unserer Tabelle – und der Preis wird automatisch berechnet.</p>
           <div class="creators__ctas">
             <a class="pill pill--solid" href="creator.html">Als Creator registrieren <span class="arr"><svg><use href="#i-arrow"/></svg></span></a>
-            <a class="link-u" href="dashboard.html">Creator-Login</a>
+            <a class="link-u" href="dashboard.html">Zum Login</a>
           </div>
         </div>
         <div class="tiles">
@@ -161,16 +135,11 @@
       </div>
     </section>
 
-    <!-- ZAHLEN -->
-    <section class="stats" aria-labelledby="stats-title">
-      <span class="eyebrow eyebrow--light">In Zahlen</span>
-      <h2 class="h-stack" id="stats-title" data-lines="Live aus dem|Schaufenster">Live aus dem Schaufenster</h2>
-      <dl>
-        <div class="stat" data-spring><dt class="sr-only">Live-Deals</dt><dd><div class="stat__v" data-stat="deals">–</div><div class="stat__l">Live-Deals</div></dd></div>
-        <div class="stat" data-spring><dt class="sr-only">Aktive Creator</dt><dd><div class="stat__v" data-stat="creators">–</div><div class="stat__l">Aktive Creator</div></dd></div>
-        <div class="stat" data-spring><dt class="sr-only">Durchschnittliche Ersparnis</dt><dd><div class="stat__v" data-stat="avg">–</div><div class="stat__l">Ø Ersparnis zum Originalpreis</div></dd></div>
-        <div class="stat" data-spring><dt class="sr-only">Mit Video-Nachweis</dt><dd><div class="stat__v" data-stat="video">–</div><div class="stat__l">Mit Video-Nachweis</div></dd></div>
-      </dl>
+    <!-- STATUS-CODES -->
+    <section class="stats" id="status" aria-labelledby="stats-title">
+      <span class="eyebrow eyebrow--light">Status_Code</span>
+      <h2 class="h-stack" id="stats-title" data-lines="Dein Steuersatz,|dein Preis">Dein Steuersatz, dein Preis</h2>
+      <dl id="statusCells"></dl>
     </section>
 
     <!-- FAQ -->
@@ -178,9 +147,9 @@
       <span class="eyebrow">Gut zu wissen</span>
       <h2 class="h-stack" id="faq-title" data-lines="Kurz|erklärt">Kurz erklärt</h2>
       <ul>
-        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Sind die Produkte wirklich wie neu?</h3><p>Ja. Jedes Produkt wurde nur einmal für ein TikTok-Testvideo ausgepackt. Das Video verlinken wir direkt am Angebot.</p></div><footer><b>Zustand</b><span>Video-Nachweis am Deal</span></footer></article></li>
-        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Wie läuft der Kauf ab?</h3><p>Über „Jetzt kaufen“ landest du im privaten Telegram-Chat des Creators. Bezahlung und Versand klärt ihr direkt miteinander.</p></div><footer><b>Kauf</b><span>Direkt per Telegram</span></footer></article></li>
-        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Wer verkauft hier?</h3><p>Die Plattform ist ausschließlich für offizielle TikTok Shop Creator. Ohne Shop-Creator-Status ist keine Registrierung möglich.</p></div><footer><b>Verkäufer</b><span>Nur TikTok Shop Creator</span></footer></article></li>
+        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Warum fragt ihr nach meinem Steuersatz?</h3><p>Dein Steuersatz bestimmt deinen Status_Code. Daraus berechnen wir automatisch den Verkaufspreis deiner Produkte – du musst nichts selbst kalkulieren.</p></div><footer><b>Preis</b><span>Automatisch berechnet</span></footer></article></li>
+        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Wer kann mitmachen?</h3><p>Nur offizielle TikTok Shop Creator. Wer kein Shop Creator ist, kann sich nicht registrieren.</p></div><footer><b>Zugang</b><span>Nur TikTok Shop Creator</span></footer></article></li>
+        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Telegram oder Website?</h3><p>Beides. Nach der Registrierung verbindest du dich mit unserem Telegram-Bot – oder du stellst Produkte im Web-Dashboard ein.</p></div><footer><b>Upload</b><span>Telegram &amp; Web</span></footer></article></li>
       </ul>
     </section>
 
@@ -189,6 +158,6 @@
 
   <script src="assets/js/config.js"></script>
   <script src="assets/js/api.js"></script>
-  <script type="module" src="assets/js/home.js"></script>
+  <script type="module" src="assets/js/creator-home.js"></script>
 </body>
 </html>

@@ -298,17 +298,93 @@ function overlay({ root, bg, panel, from, to, cfg, onOpen, focus }) {
 
 export let menu, drawer;
 
+/* ---------- Creator-Variante (Header, Menü, Footer) ---------- */
+function creatorHeaderHTML() {
+  return `<header class="sh sh--creator" id="sh">
+    <div class="sh__bar">
+      <div class="sh__row sh__row--creator">
+        <button class="burger sh__burger" id="burger" type="button" aria-label="Menü öffnen" aria-expanded="false" aria-controls="menu"><i></i><i></i></button>
+        <a class="brand sh__brand" href="./" aria-label="TTS Deals Creator – Startseite"><svg class="mark"><use href="#i-mark"/></svg>TTS Deals<span class="sh__tag">Creator</span></a>
+        <nav class="sh__nav" aria-label="Hauptnavigation">
+          <a href="./#ablauf">So funktioniert's</a>
+          <a href="./#rechner">Preisrechner</a>
+          <a href="./#wege">Telegram &amp; Web</a>
+          <a href="./#faq">FAQ</a>
+        </nav>
+        <div class="sh__actions">
+          <a class="sh__login" href="dashboard.html"><svg><use href="#i-user"/></svg><span>Login</span></a>
+          <a class="pill pill--neon pill--sm" href="creator.html">Registrieren</a>
+        </div>
+      </div>
+    </div>
+  </header>`;
+}
+const CREATOR_MENU_HTML = `<div class="menu" id="menu" aria-hidden="true" inert>
+  <div class="menu__bg" id="menuBg"></div>
+  <div class="menu__panel" id="menuPanel" role="dialog" aria-modal="true" aria-label="Menü">
+    <div class="menu__inner">
+      <div class="menu__top">
+        <a class="brand" href="./"><svg class="mark"><use href="#i-mark"/></svg>TTS Deals</a>
+        <button class="x-btn" id="menuClose" type="button" aria-label="Menü schließen"><span><svg><use href="#i-x"/></svg></span></button>
+      </div>
+      <nav class="menu__nav" aria-label="Menü">
+        <a href="./#rechner">Preisrechner</a>
+        <a href="./#ablauf">So geht's</a>
+        <a href="creator.html">Registrieren</a>
+        <a href="dashboard.html">Login</a>
+      </nav>
+      <div class="menu__bottom">
+        <a class="pill pill--light" href="creator.html">Als Creator registrieren <span class="arr"><svg><use href="#i-arrow"/></svg></span></a>
+        <nav aria-label="Weitere Links"><a href="./#wege">Telegram &amp; Web</a><a href="./#faq">FAQ</a></nav>
+      </div>
+    </div>
+  </div>
+</div>`;
+function creatorFooterHTML() {
+  return `<footer class="footer" id="kontakt">
+    <div class="footer__cta">
+      <div>
+        <span class="eyebrow eyebrow--light">Los geht's</span>
+        <p class="footer__big" data-lines="Bereit für deinen|ersten Deal?">Bereit für deinen ersten Deal?</p>
+      </div>
+      <a class="pill pill--neon" id="footerCta" href="creator.html">Als Creator registrieren <span class="arr"><svg><use href="#i-arrow"/></svg></span></a>
+    </div>
+    <div class="footer__cols footer__cols--3">
+      <div class="footer__brand">
+        <span class="brand"><svg class="mark"><use href="#i-mark"/></svg>TTS Deals</span>
+        <p>Die Plattform für TikTok Shop Creator: Produkte aus deinen Testvideos weiterverkaufen – mit automatisch berechnetem Preis.</p>
+      </div>
+      <nav aria-label="Für Creator"><h4>Für Creator</h4><ul>
+        <li><a href="creator.html">Registrieren</a></li>
+        <li><a href="dashboard.html">Login</a></li>
+        <li><a href="${T.telegramBotLink('')}" target="_blank" rel="noopener noreferrer">Telegram-Bot</a></li>
+      </ul></nav>
+      <nav aria-label="Info"><h4>Info</h4><ul>
+        <li><a href="./#ablauf">So funktioniert's</a></li>
+        <li><a href="./#rechner">Preisrechner</a></li>
+        <li><a href="./#faq">Häufige Fragen</a></li>
+      </ul></nav>
+    </div>
+    <div class="footer__bar">
+      <span>© 2026 TTS Deals. Alle Rechte vorbehalten.</span>
+      <nav aria-label="Bildnachweis"><a href="https://unsplash.com" target="_blank" rel="noopener noreferrer">Fotos: Unsplash</a></nav>
+    </div>
+  </footer>`;
+}
+
 /**
  * Baut Header, Menü, Merkliste und Footer ein.
- * hero: Header liegt transparent über dem Hero (Startseite).
+ * hero: Header liegt transparent über dem Hero.
+ * mode: 'shop' (Marktplatz mit Suche & Merkliste) oder 'creator' (Creator-Bereich).
  */
-export function renderChrome({ hero = false } = {}) {
+export function renderChrome({ hero = false, mode = 'shop' } = {}) {
+  const creator = mode === 'creator';
   const params = new URLSearchParams(location.search);
-  document.body.insertAdjacentHTML('afterbegin', SPRITE + headerHTML(params.get('q') || '', params.get('cat') || ''));
-  document.body.insertAdjacentHTML('beforeend', MENU_HTML + DRAWER_HTML);
+  document.body.insertAdjacentHTML('afterbegin', SPRITE + (creator ? creatorHeaderHTML() : headerHTML(params.get('q') || '', params.get('cat') || '')));
+  document.body.insertAdjacentHTML('beforeend', creator ? CREATOR_MENU_HTML : MENU_HTML + DRAWER_HTML);
   const footSlot = $('#siteFooter');
   if (footSlot) {
-    footSlot.outerHTML = footerHTML();
+    footSlot.outerHTML = creator ? creatorFooterHTML() : footerHTML();
     stackedLines($('.footer__big'));
     inview($('#footerCta'), ...rise(20), { tension: 200, friction: 24 }, 150);
   }
@@ -316,7 +392,7 @@ export function renderChrome({ hero = false } = {}) {
   const sh = $('#sh');
   if (hero) sh.classList.add('sh--hero');
   if (T.DEMO) {
-    sh.insertAdjacentHTML('beforeend', '<p class="sh__demo">Demo-Modus · Beispieldaten</p>');
+    sh.insertAdjacentHTML('beforeend', `<p class="sh__demo">${creator ? 'Demo-Modus · Daten nur in diesem Browser' : 'Demo-Modus · Beispieldaten'}</p>`);
   }
 
   // Header-Höhe als CSS-Variable (für Abstände unter dem fixen Header)
@@ -332,13 +408,6 @@ export function renderChrome({ hero = false } = {}) {
     if (goingDown && y > 220 && !hidden && !sh.contains(document.activeElement)) { hidden = true; sh.classList.add('is-hidden'); }
     else if ((goingUp || y < 120) && hidden) { hidden = false; sh.classList.remove('is-hidden'); }
     if (goingDown || goingUp) lastY = y;
-  });
-
-  // Suche: leere Suche → alle Deals
-  $('.sh__search').addEventListener('submit', (e) => {
-    const f = e.currentTarget;
-    if (!f.q.value.trim()) f.q.removeAttribute('name');
-    if (!f.cat.value) f.cat.removeAttribute('name');
   });
 
   // Menü
@@ -357,27 +426,36 @@ export function renderChrome({ hero = false } = {}) {
   $('#burger').addEventListener('click', menu.show);
   $('#menuClose').addEventListener('click', menu.hide);
   $$('.menu a').forEach((a) => a.addEventListener('click', () => menu.hide()));
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') { menu.hide(); drawer && drawer.hide(); } });
 
-  // Merkliste
-  const panel = $('#drawerPanel');
-  panel.__apply = (s) => { panel.style.transform = `translate3d(${s.x}%,0,0)`; };
-  drawer = overlay({
-    root: $('#drawer'), bg: $('#drawerBg'), panel,
-    from: { x: 105 }, to: { x: 0 }, cfg: { tension: 260, friction: 30 }, focus: $('#drawerClose'),
-    onOpen(open) { if (open) renderDrawer(); },
-  });
-  $('#wishBtn').addEventListener('click', drawer.show);
-  $('#drawerClose').addEventListener('click', drawer.hide);
-  addEventListener('keydown', (e) => { if (e.key === 'Escape') { menu.hide(); drawer.hide(); } });
+  if (!creator) {
+    // Suche: leere Suche → alle Deals
+    $('.sh__search').addEventListener('submit', (e) => {
+      const f = e.currentTarget;
+      if (!f.q.value.trim()) f.q.removeAttribute('name');
+      if (!f.cat.value) f.cat.removeAttribute('name');
+    });
 
-  const updateCount = (ids) => {
-    const c = $('#wishCount');
-    c.textContent = ids.length;
-    c.hidden = !ids.length;
-    if (drawer.open) renderDrawer();
-  };
-  wish.on(updateCount);
-  updateCount(wish.ids());
+    // Merkliste
+    const panel = $('#drawerPanel');
+    panel.__apply = (s) => { panel.style.transform = `translate3d(${s.x}%,0,0)`; };
+    drawer = overlay({
+      root: $('#drawer'), bg: $('#drawerBg'), panel,
+      from: { x: 105 }, to: { x: 0 }, cfg: { tension: 260, friction: 30 }, focus: $('#drawerClose'),
+      onOpen(open) { if (open) renderDrawer(); },
+    });
+    $('#wishBtn').addEventListener('click', drawer.show);
+    $('#drawerClose').addEventListener('click', drawer.hide);
+
+    const updateCount = (ids) => {
+      const c = $('#wishCount');
+      c.textContent = ids.length;
+      c.hidden = !ids.length;
+      if (drawer.open) renderDrawer();
+    };
+    wish.on(updateCount);
+    updateCount(wish.ids());
+  }
 
   // Hover-Mikrointeraktionen
   bindMicro(document);

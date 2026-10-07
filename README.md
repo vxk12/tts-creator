@@ -1,16 +1,30 @@
 # TTS Creator-Plattform
 
-Mobile-first Web-App (Deep Black + Neon-Grün `#00FF66`, Font Onest) mit zwei getrennten Bereichen. Die Startseite ist im Editorial-Stil gebaut: Intro-Loader, Parallax-Hero, Clip-Masken-Text-Reveals, Spring-Animationen und Smooth Scroll (Lenis).
+Mobile-first Web-App (Deep Black + Neon-Grün `#00FF66`, Font Onest) im Editorial-Stil: Intro-Loader, Parallax-Hero, Clip-Masken-Reveals, Spring-Animationen, Smooth Scroll (Lenis).
+
+**Aktueller Fokus: Creator-Workflow & Preisberechnung.** Der Marktplatz für Käufer ist vorbereitet, aber noch nicht verlinkt.
 
 | Bereich | Datei | Zweck |
 |---|---|---|
-| **A – Shop (B2C)** | `index.html` | Startseite: Hero, Kategorie-Kacheln, „Größte Rabatte“, Live-Deals, Ablauf, Creator-Teaser, Kennzahlen, FAQ |
-| | `shop.html` | Such- & Kategorieseite mit Filtern (Kategorie, Preis, Rabatt, Video-Nachweis) und Sortierung. Parameter: `q`, `cat`, `seller`, `price`, `off`, `video`, `sort` |
-| | `product.html?id=…` | Produktseite: Galerie mit eingebettetem TikTok-Video, Details, Kaufbox (Telegram), ähnliche Deals, mehr vom Creator |
-| **B – Creator-Onboarding (B2B)** | `creator.html` | Stufe 1: Einmalige Registrierung (nur über „Als Creator registrieren“ erreichbar) |
-| **B – Creator-Dashboard** | `dashboard.html` | Stufe 2: Optionale Web-Eingabemaske für neue Produkte |
+| **Creator-Startseite** | `index.html` | Workflow in 4 Schritten, interaktiver **Preisrechner**, zwei Upload-Wege (Telegram/Web), Status-Codes, FAQ |
+| **Registrierung (Stufe 1)** | `creator.html` | Shop-Creator-Check → TikTok-Username (Spalte B) → Grenzsteuersatz (Spalte C) → Telegram verbinden. Vorbelegung per `?rate=0.3&mode=bracket\|exact` aus dem Preisrechner |
+| **Dashboard (Stufe 2)** | `dashboard.html` | Web-Eingabemaske (Spalten E, F, G) mit **Live-Preisberechnung**, Telegram-Kontakt, eigene Inserate |
+| *Marktplatz (versteckt)* | `marktplatz.html`, `shop.html`, `product.html` | B2C-Schaufenster, Suche & Produktseiten – fertig, aber nicht verlinkt (`noindex`) |
 
-Alle Shop-Seiten haben denselben Header: Suche mit Kategorie-Auswahl, Kategorie-Leiste, Merkliste (wird im Browser gespeichert) und Creator-Login.
+## Preisberechnung
+
+Website (`PRICING` in `assets/js/api.js`) und Google Sheet (Formel in Spalte H, `CONFIG.PRICE_FORMULA` in `backend/Code.gs`) rechnen identisch:
+
+| Status_Code (Spalte C) | Herkunft | Preis (Spalte H) |
+|---|---|---|
+| `0.00` | Einkommen unter 12.300 €/Jahr (oder exakt 0 %) | Einkaufspreis × 0,82 |
+| `0.30` | Einkommen 15.000–60.000 €/Jahr | Einkaufspreis × 0,70 |
+| `0.42` | Einkommen über 66.000 €/Jahr | Einkaufspreis × 0,58 |
+| `x` (exakt, z. B. `0.35`) | Grenzsteuersatz bekannt (0–60 %) | Einkaufspreis × (1 − x) |
+
+Beispiel: 27,00 € bei Status `0.42` → 15,66 € (entspricht Zeile 2 der Tabelle).
+
+> Wer die Formel ändert, muss sie an **beiden** Stellen anpassen.
 
 Die Website ist rein statisch (HTML/CSS/JS, kein Build-Schritt). Als Datenbank dient das Google Sheet, angebunden über ein **Google Apps Script** (`backend/Code.gs`), das als kleine API läuft. Es gibt keinen eigenen Server und keine geheimen Schlüssel im Frontend.
 
@@ -116,22 +130,19 @@ Login mit Username + Creator-Key. Die Maske hat drei Felder: Shop-Link (E), Eink
 ## Projektstruktur
 
 ```
-index.html              Startseite
-shop.html               Such- & Kategorieseite
-product.html            Produktseite
-creator.html            Onboarding (B2B, Stufe 1)
-dashboard.html          Creator-Dashboard (B2B, Stufe 2)
-assets/css/store.css    Design aller Shop-Seiten (rem-basiert, adaptiv skaliert)
-assets/css/style.css    Design von Onboarding + Dashboard
+index.html              Creator-Startseite (Workflow, Preisrechner)
+creator.html            Registrierung (Stufe 1)
+dashboard.html          Creator-Dashboard (Stufe 2)
+marktplatz.html         Marktplatz-Startseite (noch nicht verlinkt)
+shop.html, product.html Suche & Produktseiten (noch nicht verlinkt)
+assets/css/store.css    Design aller Seiten (rem-basiert, adaptiv skaliert)
 assets/js/config.js     API-URL + Telegram-Bot
-assets/js/api.js        API-Anbindung (mit 60-s-Cache), Demo-Modus, Helfer
+assets/js/api.js        API-Anbindung, Preislogik (PRICING), Demo-Modus
 assets/js/core.js       Motion-Kern: Lenis, Spring-Animationen, Reveals, Parallax
-assets/js/store.js      Header, Menü, Merkliste, Footer, Produktkarten, Karussells
-assets/js/home.js       Startseite
-assets/js/shop-page.js  Such- & Kategorieseite
-assets/js/product.js    Produktseite
-assets/js/onboarding.js
-assets/js/dashboard.js
+assets/js/store.js      Header, Menü, Footer (Creator- & Shop-Variante), Produktkarten
+assets/js/pricing-ui.js Steuersatz-Auswahl, animierte Preisanzeige, Aufschlüsselung
+assets/js/creator-home.js, onboarding.js, dashboard.js
+assets/js/home.js, shop-page.js, product.js   (Marktplatz)
 assets/img/             Bilder (Unsplash-Lizenz) + Favicon
 backend/Code.gs         Google Apps Script (API zum Google Sheet)
 ```

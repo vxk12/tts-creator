@@ -93,9 +93,9 @@ export function setReady() { if (ready) return; ready = true; readyQueue.splice(
 
 /* ---------------- Inview / Hover ---------------- */
 const io = new IntersectionObserver((entries) => {
-  for (const e of entries) if (e.isIntersecting) { io.unobserve(e.target); e.target.__onView && e.target.__onView(); }
+  for (const e of entries) if (e.isIntersecting) { io.unobserve(e.target); (e.target.__onView || []).splice(0).forEach((fn) => fn()); }
 }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
-export const onView = (el, fn) => { el.__onView = fn; io.observe(el); };
+export const onView = (el, fn) => { (el.__onView ||= []).push(fn); io.observe(el); };
 const gate = (gated) => (gated ? whenReady : (f) => f());
 
 export function inview(el, from, to, cfg, delay = 0, gated = false) {
@@ -176,7 +176,8 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href]');
   if (!a || e.defaultPrevented || a.target === '_blank') return;
   const url = new URL(a.href, location.href);
-  if (url.pathname !== location.pathname || !url.hash || url.hash === '#') return;
+  const norm = (p) => p.replace(/index\.html$/, '');
+  if (norm(url.pathname) !== norm(location.pathname) || !url.hash || url.hash === '#') return;
   const target = $(url.hash);
   if (!target) return;
   e.preventDefault();
