@@ -4,9 +4,13 @@ Mobile-first Web-App (Deep Black + Neon-Grün `#00FF66`, Font Onest) mit zwei ge
 
 | Bereich | Datei | Zweck |
 |---|---|---|
-| **A – Schaufenster (B2C)** | `index.html` | Öffentliche Startseite: Hero, Kategorien-Karussell, filterbares Produkt-Grid (live aus dem Google Sheet), Ablauf, Creator-Teaser, Live-Kennzahlen, FAQ. |
-| **B – Creator-Onboarding (B2B)** | `creator.html` | Stufe 1: Einmalige Registrierung (nur über „Als Creator registrieren“ erreichbar). |
-| **B – Creator-Dashboard** | `dashboard.html` | Stufe 2: Optionale Web-Eingabemaske für neue Produkte. |
+| **A – Shop (B2C)** | `index.html` | Startseite: Hero, Kategorie-Kacheln, „Größte Rabatte“, Live-Deals, Ablauf, Creator-Teaser, Kennzahlen, FAQ |
+| | `shop.html` | Such- & Kategorieseite mit Filtern (Kategorie, Preis, Rabatt, Video-Nachweis) und Sortierung. Parameter: `q`, `cat`, `seller`, `price`, `off`, `video`, `sort` |
+| | `product.html?id=…` | Produktseite: Galerie mit eingebettetem TikTok-Video, Details, Kaufbox (Telegram), ähnliche Deals, mehr vom Creator |
+| **B – Creator-Onboarding (B2B)** | `creator.html` | Stufe 1: Einmalige Registrierung (nur über „Als Creator registrieren“ erreichbar) |
+| **B – Creator-Dashboard** | `dashboard.html` | Stufe 2: Optionale Web-Eingabemaske für neue Produkte |
+
+Alle Shop-Seiten haben denselben Header: Suche mit Kategorie-Auswahl, Kategorie-Leiste, Merkliste (wird im Browser gespeichert) und Creator-Login.
 
 Die Website ist rein statisch (HTML/CSS/JS, kein Build-Schritt). Als Datenbank dient das Google Sheet, angebunden über ein **Google Apps Script** (`backend/Code.gs`), das als kleine API läuft. Es gibt keinen eigenen Server und keine geheimen Schlüssel im Frontend.
 
@@ -31,6 +35,7 @@ Ohne eingetragene API-URL läuft die Seite im **Demo-Modus** mit Beispielprodukt
 | I | Tax_Rate (gleicher Wert wie C) | automatisch |
 | J | Kategorie (Tech / Beauty / Haushalt / Sonstiges) | optional im Dashboard |
 | K | Erstellt_Am | automatisch |
+| L | Beschreibung (erscheint auf der Produktseite) | optional im Dashboard |
 
 Im Schaufenster erscheinen alle Zeilen, deren Spalte H einen gültigen Preis enthält.
 
@@ -59,7 +64,7 @@ Im Schaufenster erscheinen alle Zeilen, deren Spalte H einen gültigen Preis ent
 1. Google Sheet öffnen → **Erweiterungen → Apps Script**.
 2. Den Inhalt von `backend/Code.gs` komplett einfügen und speichern.
 3. Oben die Funktion **`setup`** auswählen → **Ausführen** → Berechtigungen bestätigen.
-   Das legt das Blatt `Creators` und fehlende Spaltenköpfe (J, K) an.
+   Das legt das Blatt `Creators` und fehlende Spaltenköpfe (J–L) an.
 4. **Bereitstellen → Neue Bereitstellung → Typ: Web-App**
    - Ausführen als: **Ich**
    - Zugriff: **Jeder**
@@ -111,18 +116,24 @@ Login mit Username + Creator-Key. Die Maske hat drei Felder: Shop-Link (E), Eink
 ## Projektstruktur
 
 ```
-index.html            Schaufenster (B2C) – Startseite
-creator.html          Onboarding (B2B, Stufe 1)
-dashboard.html        Creator-Dashboard (B2B, Stufe 2)
-assets/css/home.css   Design der Startseite (rem-basiert, adaptiv skaliert)
-assets/css/style.css  Design von Onboarding + Dashboard
-assets/js/config.js   API-URL + Telegram-Bot
-assets/js/api.js      API-Anbindung, Demo-Modus, Helfer
-assets/js/home.js     Startseite: Loader, Lenis, Spring-Animationen, Karussells, Deals
+index.html              Startseite
+shop.html               Such- & Kategorieseite
+product.html            Produktseite
+creator.html            Onboarding (B2B, Stufe 1)
+dashboard.html          Creator-Dashboard (B2B, Stufe 2)
+assets/css/store.css    Design aller Shop-Seiten (rem-basiert, adaptiv skaliert)
+assets/css/style.css    Design von Onboarding + Dashboard
+assets/js/config.js     API-URL + Telegram-Bot
+assets/js/api.js        API-Anbindung (mit 60-s-Cache), Demo-Modus, Helfer
+assets/js/core.js       Motion-Kern: Lenis, Spring-Animationen, Reveals, Parallax
+assets/js/store.js      Header, Menü, Merkliste, Footer, Produktkarten, Karussells
+assets/js/home.js       Startseite
+assets/js/shop-page.js  Such- & Kategorieseite
+assets/js/product.js    Produktseite
 assets/js/onboarding.js
 assets/js/dashboard.js
-assets/img/           Bilder (Unsplash-Lizenz) + Favicon
-backend/Code.gs       Google Apps Script (API zum Google Sheet)
+assets/img/             Bilder (Unsplash-Lizenz) + Favicon
+backend/Code.gs         Google Apps Script (API zum Google Sheet)
 ```
 
 Die Kennzahlen auf der Startseite (Live-Deals, aktive Creator, Ø Ersparnis, Anteil mit Video-Nachweis) werden live aus den Produktdaten berechnet. Produktbilder kommen aus dem TikTok-Video (Vorschaubild); fehlt es, wird ein Kategorie-Bild angezeigt.

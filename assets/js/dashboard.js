@@ -52,7 +52,7 @@
       const mine = (await getProducts()).filter((p) => p.userId.toLowerCase() === creator.userId.toLowerCase());
       $('statCount').textContent = mine.length;
       list.innerHTML = mine.length
-        ? mine.map((p) => `<li><span class="n">${esc(p.name || p.videoTitle || 'TikTok Shop Produkt')}</span><span class="p">${fmtEUR(p.price)}</span></li>`).join('')
+        ? mine.map((p) => `<li><a class="n" href="product.html?id=${encodeURIComponent(p.id)}">${esc(p.name || p.videoTitle || 'TikTok Shop Produkt')}</a><span class="p">${fmtEUR(p.price)}</span></li>`).join('')
         : '<li class="muted">Noch keine Inserate. Leg oben dein erstes Produkt an.</li>';
     } catch (err) {
       list.innerHTML = `<li class="muted">${esc(err.message)}</li>`;
@@ -117,12 +117,12 @@
     try {
       const res = await addProduct(creds, {
         shopLink, price: Number(priceRaw), videoLink,
-        name: $('pName').value.trim(), category: $('pCat').value,
+        name: $('pName').value.trim(), category: $('pCat').value, description: $('pDesc').value.trim(),
       });
       const p = res.product;
       $('result').innerHTML = `<p>Inseriert! Dein Schnäppchenpreis im Schaufenster:</p>
         <span class="price__now">${fmtEUR(p.price)}</span>
-        <p class="small">Einkaufspreis ${fmtEUR(p.originalPrice)} · <a class="link" href="./" target="_blank">Im Schaufenster ansehen</a></p>`;
+        <p class="small">Einkaufspreis ${fmtEUR(p.originalPrice)} · <a class="link" href="product.html?id=${encodeURIComponent(p.id)}" target="_blank">Produktseite ansehen</a></p>`;
       $('result').hidden = false;
       e.target.reset();
       loadMine();

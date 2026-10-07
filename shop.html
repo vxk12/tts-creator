@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Alle Deals – TTS Deals</title>
+  <meta name="description" content="Alle Deals: Produkte, die TikTok Shop Creator nur einmal für ein Testvideo ausgepackt haben.">
+  <meta name="theme-color" content="#0b0b0d">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/store.css">
+  <script>setTimeout(function () { if (!window.__pageReady) document.documentElement.classList.add('no-motion'); }, 5000);</script>
+  <script type="importmap">
+  { "imports": { "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.1.18/+esm" } }
+  </script>
+</head>
+<body>
+  <main class="page">
+    <section class="listing" aria-labelledby="listTitle">
+      <nav class="crumbs" aria-label="Brotkrumen" id="crumbs"><a href="index.html">Start</a><span>›</span><a href="shop.html">Alle Deals</a></nav>
+      <div class="listing__head">
+        <div>
+          <span class="eyebrow eyebrow--light" id="listEyebrow">Shop</span>
+          <h1 class="listing__title" id="listTitle">Alle Deals</h1>
+        </div>
+        <div class="listing__sortbar">
+          <p class="deals__count" id="count" aria-live="polite"></p>
+          <label class="sr-only" for="sort">Sortieren nach</label>
+          <select class="sort" id="sort">
+            <option value="new">Neueste zuerst</option>
+            <option value="discount">Größter Rabatt</option>
+            <option value="price-asc">Preis: aufsteigend</option>
+            <option value="price-desc">Preis: absteigend</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="listing__layout">
+        <details class="filters" id="filters" open>
+          <summary class="filters__toggle"><span>Filter</span><b id="filterCount"></b><svg><use href="#i-chevron"/></svg></summary>
+          <div class="filters__body">
+            <fieldset class="fgroup" id="fCat"><legend>Kategorie</legend></fieldset>
+            <fieldset class="fgroup"><legend>Preis</legend>
+              <label class="fopt"><input type="radio" name="price" value=""> <span>Alle Preise</span></label>
+              <label class="fopt"><input type="radio" name="price" value="0-25"> <span>Bis 25 €</span></label>
+              <label class="fopt"><input type="radio" name="price" value="25-50"> <span>25 bis 50 €</span></label>
+              <label class="fopt"><input type="radio" name="price" value="50-100"> <span>50 bis 100 €</span></label>
+              <label class="fopt"><input type="radio" name="price" value="100-"> <span>Über 100 €</span></label>
+            </fieldset>
+            <fieldset class="fgroup"><legend>Rabatt</legend>
+              <label class="fopt"><input type="radio" name="off" value=""> <span>Alle</span></label>
+              <label class="fopt"><input type="radio" name="off" value="20"> <span>Ab 20 %</span></label>
+              <label class="fopt"><input type="radio" name="off" value="30"> <span>Ab 30 %</span></label>
+              <label class="fopt"><input type="radio" name="off" value="40"> <span>Ab 40 %</span></label>
+            </fieldset>
+            <fieldset class="fgroup"><legend>Nachweis</legend>
+              <label class="fopt fopt--check"><input type="checkbox" id="fVideo"> <span>Nur mit Video-Nachweis</span></label>
+            </fieldset>
+            <button class="link-u filters__reset" type="button" id="resetFilters">Alle Filter zurücksetzen</button>
+          </div>
+        </details>
+
+        <div class="listing__results">
+          <div class="active-filters" id="activeFilters"></div>
+          <ul class="grid grid--listing" id="grid"></ul>
+          <div class="empty" id="empty" hidden></div>
+          <div class="deals__more" id="moreWrap" hidden><button class="pill pill--light" type="button" id="more">Mehr laden <span class="arr"><svg><use href="#i-arrow"/></svg></span></button></div>
+        </div>
+      </div>
+    </section>
+
+    <div id="siteFooter"></div>
+  </main>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script type="module" src="assets/js/shop-page.js"></script>
+</body>
+</html>

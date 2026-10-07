@@ -17,9 +17,9 @@ const CONFIG = {
 };
 
 // Spalten im Produkt-Blatt (1-basiert)
-const P = { ID: 1, USER: 2, STATUS: 3, NAME: 4, SHOP: 5, PRICE: 6, VIDEO: 7, SALE: 8, TAX: 9, CAT: 10, CREATED: 11 };
+const P = { ID: 1, USER: 2, STATUS: 3, NAME: 4, SHOP: 5, PRICE: 6, VIDEO: 7, SALE: 8, TAX: 9, CAT: 10, CREATED: 11, DESC: 12 };
 const P_HEADERS = ['Produkt_ID', 'User_ID', 'Status_Code', 'Produkt_Name', 'TTS_Shop_Link', 'Einkaufspreis',
-  'TikTok_Video_Link', 'Empfohlener_Verkaufspreis', 'Tax_Rate', 'Kategorie', 'Erstellt_Am'];
+  'TikTok_Video_Link', 'Empfohlener_Verkaufspreis', 'Tax_Rate', 'Kategorie', 'Erstellt_Am', 'Beschreibung'];
 
 // Spalten im Creator-Blatt (1-basiert) – B = User_ID, C = Status_Code wie in der Spezifikation
 const C = { CREATED: 1, USER: 2, STATUS: 3, TELEGRAM: 4, KEY_HASH: 5 };
@@ -103,6 +103,7 @@ function addProduct_(body) {
   }
   const name = String(body.name || '').trim().slice(0, 120);
   const category = CONFIG.CATEGORIES.indexOf(body.category) >= 0 ? body.category : '';
+  const description = String(body.description || '').trim().slice(0, 1500);
 
   return withLock_(() => {
     const sheet = productsSheet_();
@@ -119,6 +120,7 @@ function addProduct_(body) {
     values[P.TAX - 1] = creator.statusCode;       // Tax_Rate (Spalte I) – wird von der Formel in H genutzt
     values[P.CAT - 1] = category;
     values[P.CREATED - 1] = new Date();
+    values[P.DESC - 1] = description;
 
     sheet.getRange(row, P.ID).setNumberFormat('@');
     sheet.getRange(row, 1, 1, values.length).setValues([values]);
@@ -174,6 +176,8 @@ function listProducts_() {
       id: String(r[P.ID - 1] || 'row' + (i + 2)),
       userId: userId,
       name: String(r[P.NAME - 1] || '').trim(),
+      description: String(r[P.DESC - 1] || '').trim(),
+      shopLink: String(r[P.SHOP - 1] || '').trim(),
       originalPrice: typeof original === 'number' ? original : null,
       price: sale,
       videoLink: String(r[P.VIDEO - 1] || '').trim(),
@@ -212,11 +216,12 @@ function enrichWithTikTok_(products) {
     })));
     const toCache = {};
     responses.forEach((r, i) => {
-      let data = { t: '', title: '' };
+      const idFromUrl = (String(resolved[i]).match(/\/video\/(\d+)/) || [])[1] || '';
+      let data = { t: '', title: '', id: idFromUrl };
       if (r.getResponseCode() === 200) {
         try {
           const o = JSON.parse(r.getContentText());
-          data = { t: o.thumbnail_url || '', title: o.title || '' };
+          data = { t: o.thumbnail_url || '', title: o.title || '', id: o.embed_product_id || idFromUrl };
         } catch (_) { /* ignorieren */ }
       }
       const key = keys[unique.indexOf(missing[i])];
@@ -232,6 +237,7 @@ function enrichWithTikTok_(products) {
     try {
       const d = JSON.parse(cached[keys[idx]]);
       p.thumbnail = d.t || '';
+      p.videoId = d.id || '';
       if (!p.name && d.title) p.videoTitle = d.title;
     } catch (_) { /* ignorieren */ }
   });
