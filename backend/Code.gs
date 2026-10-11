@@ -10,17 +10,27 @@
 const CONFIG = {
   PRODUCTS_SHEET: 'Tabellenblatt1',
   CREATORS_SHEET: 'Creators',
-  // Formel für Spalte H (Schnäppchenpreis). {r} wird durch die Zeilennummer ersetzt.
-  // Muss zur Preislogik der Website passen (PRICING in assets/js/api.js).
-  PRICE_FORMULA: '=IF(F{r}="","",IF(I{r}=0,ROUND(F{r}*0.82,2),ROUND(F{r}*(1-I{r}),2)))',
+  // Formel für Spalte H (Verkaufspreis) = Einkaufspreis (F) × Preisfaktor der gewählten Stufe (N).
+  // {r} wird durch die Zeilennummer ersetzt.
+  PRICE_FORMULA: '=IF(OR(F{r}="",N{r}=""),"",ROUND(F{r}*N{r},2))',
+  // Preisstufen (vorläufig) – müssen zu bot/pricing.py und PRICING.TIERS in assets/js/api.js passen.
+  TIERS: {
+    fair: { label: 'Fair', factor: 0.70 },
+    schnell: { label: 'Schnell', factor: 0.55 },
+    sofort: { label: 'Sofort weg', factor: 0.40 },
+  },
   CATEGORIES: ['Tech', 'Beauty', 'Haushalt', 'Sonstiges'],
   THUMB_CACHE_SECONDS: 21600, // 6 Stunden
 };
 
 // Spalten im Produkt-Blatt (1-basiert)
-const P = { ID: 1, USER: 2, STATUS: 3, NAME: 4, SHOP: 5, PRICE: 6, VIDEO: 7, SALE: 8, TAX: 9, CAT: 10, CREATED: 11, DESC: 12 };
+const P = {
+  ID: 1, USER: 2, STATUS: 3, NAME: 4, SHOP: 5, PRICE: 6, VIDEO: 7, SALE: 8, TAX: 9, CAT: 10, CREATED: 11, DESC: 12,
+  TIER: 13, FACTOR: 14, SOURCE: 15, IMAGE: 16, SHOP_PRICE: 17,
+};
 const P_HEADERS = ['Produkt_ID', 'User_ID', 'Status_Code', 'Produkt_Name', 'TTS_Shop_Link', 'Einkaufspreis',
-  'TikTok_Video_Link', 'Empfohlener_Verkaufspreis', 'Tax_Rate', 'Kategorie', 'Erstellt_Am', 'Beschreibung'];
+  'TikTok_Video_Link', 'Empfohlener_Verkaufspreis', 'Tax_Rate', 'Kategorie', 'Erstellt_Am', 'Beschreibung',
+  'Preisstufe', 'Preisfaktor', 'Quelle', 'Bild_URL', 'Shop_Preis'];
 
 // Spalten im Creator-Blatt (1-basiert) – B = User_ID, C = Status_Code wie in der Spezifikation
 const C = { CREATED: 1, USER: 2, STATUS: 3, TELEGRAM: 4, KEY_HASH: 5 };
@@ -53,6 +63,7 @@ function doPost(e) {
       case 'login': return json_(login_(body));
       case 'addProduct': return json_(addProduct_(body));
       case 'updateProfile': return json_(updateProfile_(body));
+      case 'updateStatus': return json_(updateStatus_(body));
       default: return json_({ ok: false, error: 'Unbekannte Aktion.' });
     }
   } catch (err) {
@@ -97,7 +108,10 @@ function login_(body) {
 function addProduct_(body) {
   const creator = auth_(body);
   const shopLink = parseUrl_(body.shopLink, 'TikTok Shop Produkt-Link');
-  const videoLink = parseUrl_(body.videoLink, 'TikTok-Video-Link');
+  const videoLink = body.videoLink ? parseUrl_(body.videoLink, 'TikTok-Video-Link') : '';
+  const tierId = String(body.tier || '');
+  const tier = CONFIG.TIERS[tierId];
+  if (!tier) throw new Error('Bitte wähle eine Preisstufe (Fair, Schnell oder Sofort weg).');
   const price = Number(String(body.price || '').replace(',', '.'));
   if (!isFinite(price) || price <= 0 || price > 100000) {
     throw new Error('Bitte gib den Einkaufspreis als Zahl ein (z. B. 27.90).');
@@ -105,6 +119,9 @@ function addProduct_(body) {
   const name = String(body.name || '').trim().slice(0, 120);
   const category = CONFIG.CATEGORIES.indexOf(body.category) >= 0 ? body.category : '';
   const description = String(body.description || '').trim().slice(0, 1500);
+  const image = /^(https:\/\/\S+|assets\/[\w\/.-]+)$/.test(String(body.image || '')) ? String(body.image) : '';
+  const shopPrice = Number(body.shopPrice);
+  const source = body.source === 'telegram' ? 'Telegram' : 'Web';
 
   return withLock_(() => {
     const sheet = productsSheet_();
@@ -122,6 +139,11 @@ function addProduct_(body) {
     values[P.CAT - 1] = category;
     values[P.CREATED - 1] = new Date();
     values[P.DESC - 1] = description;
+    values[P.TIER - 1] = tier.label;
+    values[P.FACTOR - 1] = tier.factor;
+    values[P.SOURCE - 1] = source;
+    values[P.IMAGE - 1] = image;
+    values[P.SHOP_PRICE - 1] = isFinite(shopPrice) && shopPrice > 0 ? Math.round(shopPrice * 100) / 100 : '';
 
     sheet.getRange(row, P.ID).setNumberFormat('@');
     sheet.getRange(row, 1, 1, values.length).setValues([values]);
@@ -132,8 +154,9 @@ function addProduct_(body) {
     return {
       ok: true,
       product: {
-        id: id, row: row, name: name, category: category,
-        originalPrice: values[P.PRICE - 1],
+        id: id, row: row, name: name, category: category, tier: tier.label,
+        purchasePrice: values[P.PRICE - 1],
+        originalPrice: values[P.SHOP_PRICE - 1] || values[P.PRICE - 1],
         price: typeof sale === 'number' ? sale : null,
         videoLink: videoLink,
       },
@@ -151,6 +174,15 @@ function updateProfile_(body) {
   }
   creatorsSheet_().getRange(creator.row, C.TELEGRAM).setValue(telegram);
   creator.telegram = telegram;
+  return { ok: true, creator: publicCreator_(creator) };
+}
+
+/** Steuersatz (Status_Code, Spalte C) nachträglich ändern. */
+function updateStatus_(body) {
+  const creator = auth_(body);
+  const statusCode = parseRate_(body.statusCode);
+  creatorsSheet_().getRange(creator.row, C.STATUS).setValue(statusCode);
+  creator.statusCode = statusCode;
   return { ok: true, creator: publicCreator_(creator) };
 }
 
@@ -173,13 +205,19 @@ function listProducts_() {
     if (typeof sale !== 'number' || !(sale > 0)) return; // nur Zeilen mit berechnetem Preis
     const userId = String(r[P.USER - 1] || '').trim();
     const original = r[P.PRICE - 1];
+    const shopPrice = r[P.SHOP_PRICE - 1];
+    const image = String(r[P.IMAGE - 1] || '').trim();
     products.push({
       id: String(r[P.ID - 1] || 'row' + (i + 2)),
       userId: userId,
       name: String(r[P.NAME - 1] || '').trim(),
       description: String(r[P.DESC - 1] || '').trim(),
       shopLink: String(r[P.SHOP - 1] || '').trim(),
-      originalPrice: typeof original === 'number' ? original : null,
+      purchasePrice: typeof original === 'number' ? original : null,
+      originalPrice: typeof shopPrice === 'number' && shopPrice > 0 ? shopPrice : (typeof original === 'number' ? original : null),
+      tier: String(r[P.TIER - 1] || ''),
+      source: String(r[P.SOURCE - 1] || ''),
+      image: image,
       price: sale,
       videoLink: String(r[P.VIDEO - 1] || '').trim(),
       category: CONFIG.CATEGORIES.indexOf(r[P.CAT - 1]) >= 0 ? r[P.CAT - 1] : 'Sonstiges',

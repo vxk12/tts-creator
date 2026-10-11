@@ -1,7 +1,7 @@
 /* Stufe 1: Intelligentes Onboarding-Formular (einmalig). */
 import { T, $, $$, Spring, tf, setReady } from './core.js';
 import { renderChrome, bindMicro } from './store.js';
-import { rateSelector } from './pricing-ui.js';
+import { rateSelector, RATE_DISCLAIMER } from './pricing-ui.js';
 
 renderChrome({ mode: 'creator' });
 setReady();
@@ -72,12 +72,13 @@ function renderPreview(rate) {
   const box = $('#preview');
   $('#aRate').textContent = rate == null ? '–' : rate.toFixed(2);
   if (rate == null) { box.hidden = true; return; }
-  const b = P.breakdown(EXAMPLE_PURCHASE, rate);
-  $('#previewTxt').textContent = `${T.fmtEUR(EXAMPLE_PURCHASE)} Einkaufspreis → Preis = ${Math.round(b.factor * 100)} %`;
-  $('#previewPrice').textContent = T.fmtEUR(b.price);
+  const o = P.offer(EXAMPLE_PURCHASE, 'fair', rate);
+  $('#previewTxt').textContent = `${T.fmtEUR(EXAMPLE_PURCHASE)} Einkauf · Stufe Fair → ${T.fmtEUR(o.price)} · echter Verlust nach Steuer`;
+  $('#previewPrice').textContent = T.fmtEUR(o.loss);
   if (box.hidden) { box.hidden = false; new Spring({ opacity: 0, y: 10 }, { tension: 260, friction: 24 }, tf(box)).to({ opacity: 1, y: 0 }); }
 }
 renderPreview(rs.rate);
+$('#rateNote span').textContent = RATE_DISCLAIMER;
 
 /* Absenden */
 const SUBMIT_LABEL = submitBtn.innerHTML;
@@ -98,7 +99,6 @@ form.addEventListener('submit', async (e) => {
     $('#okUser').textContent = '@' + c.userId;
     $('#sumUser').textContent = '@' + c.userId;
     $('#sumRate').textContent = `${c.statusCode.toFixed(2)} (${T.pct(c.statusCode)})`;
-    $('#sumFactor').textContent = `${Math.round(P.factor(c.statusCode) * 100)} % vom Einkaufspreis`;
     $('#creatorKey').textContent = res.creatorKey;
     $('#telegramBtn').href = T.telegramBotLink(c.userId);
     show('success');

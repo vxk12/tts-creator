@@ -51,16 +51,51 @@
         </div>
 
         <div class="dash__stats">
-          <div class="dstat"><b id="statRate">–</b><span>Status_Code (Spalte C)</span></div>
-          <div class="dstat"><b id="statFactor">–</b><span>Dein Preisfaktor</span></div>
-          <div class="dstat"><b id="statCount">–</b><span>Inserate</span></div>
+          <div class="dstat"><b id="statRate">–</b><span>Dein Steuersatz</span></div>
+          <div class="dstat"><b id="statCount">–</b><span>Samples</span></div>
+          <div class="dstat"><b id="statTg">–</b><span>davon per Telegram</span></div>
         </div>
 
-        <!-- Stufe 2: Web-Eingabemaske -->
+        <div class="dash__grid">
+          <!-- Telegram -->
+          <section class="dcard" data-spring aria-labelledby="tgTitle">
+            <h2 id="tgTitle">Telegram verbinden</h2>
+            <p class="dcard__lead">Hochgeladen wird per Telegram-Bot: Link schicken, Einkaufspreis eingeben, Preisstufe wählen. Im Bot meldest du dich einmalig an.</p>
+            <ol class="steps-tg">
+              <li>Tippe auf „Mit Telegram verbinden“ – der Bot öffnet sich mit deinem Username.</li>
+              <li>Schick dem Bot deinen Creator-Key. Er löscht die Nachricht sofort wieder.</li>
+              <li>Fertig: Der Bot kennt jetzt dein Konto und deinen Steuersatz.</li>
+            </ol>
+            <div class="keyline" id="keyline" hidden>
+              <span class="flabel">Dein Creator-Key</span>
+              <code id="keyText">••••••••••••</code>
+              <button class="btn-copy" type="button" id="keyShow">Anzeigen</button>
+              <button class="btn-copy" type="button" id="keyCopy">Kopieren</button>
+            </div>
+            <div class="wactions">
+              <a class="pill pill--neon pill--block" id="botLink" target="_blank" rel="noopener noreferrer">
+                <svg class="tg" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3L18.7 19.4c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2L6.5 13.2l-4.7-1.5c-1-.3-1-1 .2-1.5L20.5 3c.9-.3 1.6.2 1.4 1.3z"/></svg>
+                Mit Telegram verbinden
+              </a>
+            </div>
+          </section>
+
+          <!-- Steuersatz -->
+          <form class="dcard" id="rateForm" novalidate data-spring aria-labelledby="rateTitle">
+            <h2 id="rateTitle">Dein Steuersatz</h2>
+            <p class="dcard__lead">Aktuell: <b id="rateNow"></b>. Daraus berechnen Bot und Web-App deinen echten Verlust nach Steuer.</p>
+            <div id="rateSel"></div>
+            <p class="rate-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span id="rateNote"></span></p>
+            <div id="rateMsg" role="status" hidden></div>
+            <div class="wactions"><button class="pill pill--light" type="submit" id="rateBtn">Steuersatz speichern</button></div>
+          </form>
+        </div>
+
+        <!-- Web-Upload -->
         <div class="dash__grid">
           <form class="dcard" id="productForm" novalidate data-spring>
-            <h2>Neues Produkt inserieren</h2>
-            <p class="dcard__lead">Lieber über die Website statt Telegram? Drei Felder – daraus entsteht direkt eine neue Zeile in unserer Tabelle.</p>
+            <h2>Sample im Web hochladen</h2>
+            <p class="dcard__lead">Am schnellsten geht's per Telegram – hier ist der Weg im Browser.</p>
             <div class="alert--error" id="productError" role="alert" hidden style="margin-top:1.25rem"></div>
 
             <div class="fld">
@@ -73,10 +108,13 @@
                 <input id="price" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off">
                 <span>€</span>
               </div>
-              <p class="fhint">Nur die Zahl, z. B. 27,90</p>
             </div>
             <div class="fld">
-              <label class="flabel" for="videoLink">Dein TikTok-Video-Link <small>(Spalte G)</small></label>
+              <span class="flabel">Preisstufe <small>(Spalten M/N)</small></span>
+              <div id="tierSel"></div>
+            </div>
+            <div class="fld">
+              <label class="flabel" for="videoLink">TikTok-Video-Link <small>(optional, Spalte G)</small></label>
               <input class="inp" id="videoLink" type="url" inputmode="url" placeholder="https://www.tiktok.com/@…/video/…" autocomplete="off">
             </div>
 
@@ -103,40 +141,27 @@
 
             <div class="auto-note">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>
-              <span>Automatisch ergänzt: deine User_ID <b id="noteUser"></b> und dein Status_Code <b id="noteRate"></b>. Die Formel in Spalte H berechnet daraus sofort den Schnäppchenpreis.</span>
+              <span>Automatisch ergänzt: deine User_ID <b id="noteUser"></b> und dein Status_Code <b id="noteRate"></b>. Spalte H berechnet den Verkaufspreis aus Einkaufspreis × Faktor der Preisstufe.</span>
             </div>
 
             <div class="dash__submit">
-              <button class="pill pill--neon pill--block" id="productBtn" type="submit">Produkt inserieren <span class="arr"><svg><use href="#i-arrow"/></svg></span></button>
+              <button class="pill pill--neon pill--block" id="productBtn" type="submit">Sample hochladen <span class="arr"><svg><use href="#i-arrow"/></svg></span></button>
             </div>
           </form>
 
           <div class="calc__result" id="result" data-spring aria-live="polite">
-            <span class="calc__rl" id="resultLabel">Dein Schnäppchenpreis</span>
+            <span class="calc__rl" id="resultLabel">Dein Verkaufspreis</span>
             <output class="calc__price" id="resultPrice" for="price">– €</output>
             <dl class="calc__rows" id="resultRows"></dl>
-            <p class="calc__note" id="resultNote">Gib deinen Einkaufspreis ein – der Preis wird live berechnet.</p>
+            <p class="calc__note" id="resultNote">Gib deinen Einkaufspreis ein – Preis und echter Verlust werden live berechnet.</p>
           </div>
         </div>
 
-        <div class="dash__lower">
-          <form class="dcard" id="profileForm" novalidate data-spring>
-            <h2>Telegram</h2>
-            <p class="dcard__lead">Käufer werden über „Jetzt kaufen“ in deinen privaten Telegram-Chat geleitet. Produkte kannst du auch direkt über unseren Bot hochladen.</p>
-            <div class="tgrow">
-              <div class="inp-at"><span>@</span><input class="inp" id="tgUser" autocapitalize="off" spellcheck="false" placeholder="dein_telegram_name" aria-label="Dein Telegram-Username"></div>
-              <button class="pill pill--light" type="submit" id="profileBtn">Speichern</button>
-            </div>
-            <div id="profileMsg" role="status" hidden></div>
-            <div class="wactions"><a class="pill pill--ghost" id="botLink" target="_blank" rel="noopener noreferrer">Mit Telegram-Bot verbinden <span class="arr"><svg><use href="#i-arrow"/></svg></span></a></div>
-          </form>
-
-          <section class="dcard" data-spring aria-labelledby="myTitle">
-            <h2 id="myTitle">Deine Inserate</h2>
-            <p class="dcard__lead">Einkaufspreis und berechneter Preis aus der Tabelle.</p>
-            <ul class="mylist" id="myList"><li><span class="empty-li">Wird geladen …</span></li></ul>
-          </section>
-        </div>
+        <section class="dcard" data-spring aria-labelledby="myTitle" style="margin-top:1.25rem">
+          <h2 id="myTitle">Deine Samples</h2>
+          <p class="dcard__lead">Alles, was du per Telegram oder im Web hochgeladen hast.</p>
+          <ul class="mylist" id="myList"><li><span class="empty-li">Wird geladen …</span></li></ul>
+        </section>
       </div>
     </section>
   </main>

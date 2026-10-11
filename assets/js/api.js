@@ -46,23 +46,38 @@
     return `https://t.me/${cfg.TELEGRAM_BOT}?start=kauf_${ref}`;
   };
 
-  /* ---------- Preislogik (muss zur Formel in Spalte H passen, siehe backend/Code.gs) ----------
-     Status_Code 0     → Preis = Einkaufspreis × 0,82 (pauschal 18 % Abschlag)
-     Status_Code > 0   → Preis = Einkaufspreis × (1 − Status_Code)                         */
+  /* ---------- Preislogik ----------
+     Steuersatz (Status_Code, Spalte C): kommt aus dem Onboarding und bestimmt den echten Verlust.
+     Preisstufen (vorläufig): Verkaufspreis = Einkaufspreis × Faktor der Stufe.
+     Muss zu bot/pricing.py und CONFIG.TIERS in backend/Code.gs passen.                    */
   const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+  // Ganzzahl-Arithmetik, damit Website und Bot (Python/Decimal) cent-genau gleich runden
+  const toCents = (eur) => Math.round(eur * 100);
+  const toBp = (factor) => Math.round(factor * 10000);
+  const mulCents = (cents, bp) => Math.round((cents * bp) / 10000);
   const PRICING = {
-    ZERO_RATE_FACTOR: 0.82,
     MAX_RATE_PERCENT: 60,
     BRACKETS: [
       { label: 'Unter 12.300 €', sub: 'pro Jahr', code: 0.0 },
       { label: '15.000 € – 60.000 €', sub: 'pro Jahr', code: 0.3 },
       { label: 'Über 66.000 €', sub: 'pro Jahr', code: 0.42 },
     ],
-    factor(rate) { return rate === 0 ? PRICING.ZERO_RATE_FACTOR : 1 - rate; },
-    price(purchase, rate) { return round2(purchase * PRICING.factor(rate)); },
-    breakdown(purchase, rate) {
-      const price = PRICING.price(purchase, rate);
-      return { purchase: round2(purchase), rate, factor: PRICING.factor(rate), price, deduction: round2(purchase - price) };
+    TIERS: [
+      { id: 'fair', label: 'Fair', factor: 0.7, emoji: '🟢' },
+      { id: 'schnell', label: 'Schnell', factor: 0.55, emoji: '🟡' },
+      { id: 'sofort', label: 'Sofort weg', factor: 0.4, emoji: '🔴' },
+    ],
+    tier(id) { return PRICING.TIERS.find((t) => t.id === id) || PRICING.TIERS[0]; },
+    /** Verkaufspreis der Stufe = Einkaufspreis × Faktor (exakt in Cent, kaufmännisch gerundet) */
+    tierPrice(purchase, tierId) { return mulCents(toCents(purchase), toBp(PRICING.tier(tierId).factor)) / 100; },
+    /** Echter Verlust = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz) */
+    realLoss(purchase, price, rate) { return mulCents(toCents(purchase) - toCents(price), 10000 - toBp(rate)) / 100; },
+    offer(purchase, tierId, rate) {
+      const t = PRICING.tier(tierId);
+      const price = PRICING.tierPrice(purchase, t.id);
+      const diff = round2(purchase - price);
+      const loss = PRICING.realLoss(purchase, price, rate);
+      return { tier: t, purchase: round2(purchase), price, diff, rate, taxSaving: round2(diff - loss), loss };
     },
     /** "27,90" / "27.90" / "27 €" → 27.9 (oder NaN) */
     parseMoney(v) {
@@ -73,7 +88,7 @@
     },
   };
   const pct = (rate) => (rate * 100).toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' %';
-  const salePrice = PRICING.price;
+  const salePrice = (purchase, rate) => round2(purchase * (rate === 0 ? 0.82 : 1 - rate)); // nur Demo-Beispieldaten
 
   /* ---------- Live-API ---------- */
   async function apiGet(action) {
@@ -198,13 +213,25 @@
       description: product.description || '',
       createdAt: new Date().toISOString(),
       originalPrice: purchase,
-      price: salePrice(purchase, c.statusCode),
+      price: PRICING.tierPrice(purchase, product.tier),
+      purchasePrice: purchase,
+      tier: PRICING.tier(product.tier).label,
+      source: 'Web',
       videoLink: product.videoLink,
       category: CATEGORIES.includes(product.category) ? product.category : 'Sonstiges',
       telegram: c.telegram,
     };
     store.set('tts_demo_products', [...demo.products(), p]);
     return { ok: true, product: p };
+  }
+
+  async function updateStatus(creds, statusCode) {
+    if (!DEMO) return apiPost({ action: 'updateStatus', ...creds, statusCode });
+    await delay(300);
+    const c = demo.auth(creds);
+    c.statusCode = statusCode;
+    demo.save(c);
+    return { ok: true, creator: { userId: c.userId, statusCode: c.statusCode, telegram: c.telegram } };
   }
 
   async function updateProfile(creds, telegram) {
@@ -224,6 +251,6 @@
 
   window.TTS = {
     DEMO, CATEGORIES, PRICING, pct, session, fmtEUR, esc, safeUrl, telegramBotLink, buyLink,
-    getProducts, register, login, addProduct, updateProfile,
+    getProducts, register, login, addProduct, updateProfile, updateStatus,
   };
 })();

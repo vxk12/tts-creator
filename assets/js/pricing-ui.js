@@ -2,7 +2,6 @@
 import { T, $, $$, Spring, tf, RM } from './core.js';
 
 const P = T.PRICING;
-const factorLabel = (rate) => `${Math.round(P.factor(rate) * 100)} %`;
 
 /**
  * Steuersatz-Auswahl wie im Onboarding:
@@ -30,7 +29,7 @@ export function rateSelector(root, { onChange = () => {}, initial = null, idPref
       <div class="rs__list">
         ${P.BRACKETS.map((b) => `<button type="button" class="choice choice--row" data-code="${b.code}" aria-pressed="false">
           <span>${b.label} <small>${b.sub}</small></span>
-          <em>Status ${b.code.toFixed(2)} · Preis = ${factorLabel(b.code)}</em></button>`).join('')}
+          <em>Steuersatz ca. ${T.pct(b.code)}</em></button>`).join('')}
       </div>
     </div>`;
 
@@ -111,16 +110,50 @@ export function priceCounter(el) {
   };
 }
 
-/** Aufschlüsselung als <dl> */
-export function breakdownHTML(b) {
-  if (!b) return '';
-  return `
-    <dt>Einkaufspreis</dt><dd>${T.fmtEUR(b.purchase)}</dd>
-    <dt>Status_Code</dt><dd>${b.rate.toFixed(2)} <small>(${T.pct(b.rate)})</small></dd>
-    <dt>Preisfaktor</dt><dd>× ${factorLabel(b.rate)}</dd>
-    <dt>Abschlag</dt><dd>− ${T.fmtEUR(b.deduction)}</dd>`;
+/**
+ * Drei Preisstufen als Auswahlkarten (Fair / Schnell / Sofort weg).
+ * update(purchase, rate) aktualisiert Preise + echten Verlust, onChange(tierId) bei Auswahl.
+ */
+export function tierPicker(root, { onChange = () => {}, initial = 'fair' } = {}) {
+  root.classList.add('tiers');
+  root.setAttribute('role', 'radiogroup');
+  root.setAttribute('aria-label', 'Preisstufe');
+  root.innerHTML = P.TIERS.map((t) => `<button type="button" class="tier" role="radio" data-tier="${t.id}" aria-checked="${t.id === initial}">
+      <span class="tier__top"><b>${t.label}</b><small>${Math.round(t.factor * 100)} %</small></span>
+      <span class="tier__price" data-price>–</span>
+      <span class="tier__loss" data-loss>echter Verlust –</span>
+    </button>`).join('');
+  let current = initial;
+  const btns = $$('[data-tier]', root);
+  btns.forEach((b) => b.addEventListener('click', () => {
+    current = b.dataset.tier;
+    btns.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+    new Spring({ scale: 0.97 }, { tension: 420, friction: 18 }, tf(b)).to({ scale: 1 });
+    onChange(current);
+  }));
+  return {
+    get value() { return current; },
+    update(purchase, rate) {
+      btns.forEach((b) => {
+        const ok = isFinite(purchase) && purchase > 0 && rate != null;
+        const o = ok ? P.offer(purchase, b.dataset.tier, rate) : null;
+        $('[data-price]', b).textContent = o ? T.fmtEUR(o.price) : '–';
+        $('[data-loss]', b).textContent = o ? `echter Verlust ${T.fmtEUR(o.loss)}` : 'echter Verlust –';
+      });
+    },
+  };
 }
 
-export const formulaText = (rate) => (rate === 0
-  ? 'Bei Status 0.00 gilt ein pauschaler Abschlag von 18 %: Einkaufspreis × 0,82.'
-  : `Abschlag = dein Steuersatz: Einkaufspreis × (1 − ${rate.toFixed(2)}).`);
+/** Aufschlüsselung eines Angebots als <dl> */
+export function offerRowsHTML(o) {
+  if (!o) return '';
+  return `
+    <dt>Einkaufspreis</dt><dd>${T.fmtEUR(o.purchase)}</dd>
+    <dt>Verkaufspreis (${o.tier.label}, ${Math.round(o.tier.factor * 100)} %)</dt><dd>${T.fmtEUR(o.price)}</dd>
+    <dt>Differenz</dt><dd>− ${T.fmtEUR(o.diff)}</dd>
+    <dt>Steuerersparnis (${T.pct(o.rate)})</dt><dd>+ ${T.fmtEUR(o.taxSaving)}</dd>
+    <dt class="strong">Echter Verlust nach Steuer</dt><dd class="strong">${T.fmtEUR(o.loss)}</dd>`;
+}
+
+export const LOSS_NOTE = 'Echter Verlust = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz). Schätzung, keine Steuerberatung.';
+export const RATE_DISCLAIMER = 'Die Einschätzung über dein Einkommen ist ein Näherungswert und nicht 100 % genau. Für das beste Ergebnis schau in deinem letzten Steuerbescheid nach – du kannst deinen Steuersatz jederzeit im Dashboard ändern.';

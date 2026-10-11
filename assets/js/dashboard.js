@@ -1,17 +1,20 @@
-/* Stufe 2: Creator-Dashboard mit Web-Eingabemaske und Live-Preisberechnung. */
+/* Creator-Dashboard: Telegram verbinden, Steuersatz ändern, Samples (Web-Upload mit Preisstufen). */
 import { T, $, $$, Spring, tf, rise, inview, setReady } from './core.js';
 import { renderChrome, bindMicro } from './store.js';
-import { priceCounter, breakdownHTML, formulaText } from './pricing-ui.js';
+import { priceCounter, rateSelector, tierPicker, offerRowsHTML, LOSS_NOTE, RATE_DISCLAIMER } from './pricing-ui.js';
 
 renderChrome({ mode: 'creator' });
 setReady();
 
 const P = T.PRICING;
 const loginView = $('#loginView'), dashView = $('#dashView');
-let creds = null, creator = null;
+let creds = null, creator = null, animated = false;
 
 const counter = priceCounter($('#resultPrice'));
-const factorPct = (rate) => `${Math.round(P.factor(rate) * 100)}<em>%</em>`;
+const priceIn = $('#price');
+const tiers = tierPicker($('#tierSel'), { onChange: updatePreview });
+const rs = rateSelector($('#rateSel'), { idPrefix: 'dash', onChange: () => { $('#rateMsg').hidden = true; } });
+$('#rateNote').textContent = RATE_DISCLAIMER;
 
 function setBusy(btn, busy) {
   if (!btn.__label) btn.__label = btn.innerHTML;
@@ -19,6 +22,7 @@ function setBusy(btn, busy) {
   btn.innerHTML = busy ? '<span class="spinner"></span>Bitte warten …' : btn.__label;
 }
 function reveal(el) { new Spring({ opacity: 0, y: 20 }, { tension: 220, friction: 26 }, tf(el)).to({ opacity: 1, y: 0 }); }
+function showMsg(el, ok, text) { el.className = ok ? 'alert--ok' : 'alert--error'; el.style.marginTop = '1rem'; el.textContent = text; el.hidden = false; }
 
 /* ---------- Login ---------- */
 function showLogin(msg) {
@@ -47,45 +51,84 @@ loginView.addEventListener('submit', async (e) => {
   catch (err) { $('#loginError').textContent = err.message; $('#loginError').hidden = false; }
   finally { setBusy($('#loginBtn'), false); }
 });
-$('#logout').addEventListener('click', () => {
-  T.session.clear(); creds = creator = null; $('#loginKey').value = ''; showLogin();
-});
+$('#logout').addEventListener('click', () => { T.session.clear(); creds = creator = null; $('#loginKey').value = ''; showLogin(); });
 
 /* ---------- Dashboard ---------- */
+function renderRate() {
+  $('#statRate').textContent = T.pct(creator.statusCode);
+  $('#rateNow').textContent = `${T.pct(creator.statusCode)} (Status_Code ${creator.statusCode.toFixed(2)})`;
+  $('#noteRate').textContent = creator.statusCode.toFixed(2);
+}
 function showDashboard() {
   loginView.hidden = true;
   dashView.hidden = false;
   reveal(dashView);
   $('#hello').textContent = 'Hi @' + creator.userId;
-  $('#statRate').textContent = creator.statusCode.toFixed(2);
-  $('#statFactor').innerHTML = factorPct(creator.statusCode);
   $('#noteUser').textContent = '@' + creator.userId;
-  $('#noteRate').textContent = creator.statusCode.toFixed(2);
-  $('#tgUser').value = creator.telegram || '';
   $('#botLink').href = T.telegramBotLink(creator.userId);
-  $$('[data-spring]', dashView).forEach((el, i) => inview(el, ...rise(30), { tension: 190, friction: 26 }, i * 90));
+  $('#keyline').hidden = !creds.creatorKey;
+  renderRate();
+  const isBracket = P.BRACKETS.some((b) => b.code === creator.statusCode);
+  rs.set(creator.statusCode, isBracket ? 'bracket' : 'exact');
+  if (!animated) {
+    animated = true;
+    $$('[data-spring]', dashView).forEach((el, i) => inview(el, ...rise(30), { tension: 190, friction: 26 }, (i % 2) * 90));
+  }
   updatePreview();
   loadMine();
 }
 
-/* Live-Preis aus Einkaufspreis + Status_Code */
-const priceIn = $('#price');
+/* Creator-Key anzeigen / kopieren (für den Bot-Login) */
+let keyVisible = false;
+$('#keyShow').addEventListener('click', (e) => {
+  keyVisible = !keyVisible;
+  $('#keyText').textContent = keyVisible ? creds.creatorKey : '••••••••••••';
+  e.target.textContent = keyVisible ? 'Verbergen' : 'Anzeigen';
+});
+$('#keyCopy').addEventListener('click', async (e) => {
+  try { await navigator.clipboard.writeText(creds.creatorKey); e.target.textContent = 'Kopiert ✓'; }
+  catch (_) { $('#keyText').textContent = creds.creatorKey; }
+});
+
+/* Steuersatz ändern */
+$('#rateForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = $('#rateMsg');
+  const err = rs.validate();
+  if (err) return showMsg(msg, false, err);
+  const btn = $('#rateBtn');
+  setBusy(btn, true);
+  try {
+    const res = await T.updateStatus(creds, rs.rate);
+    creator = res.creator;
+    renderRate();
+    updatePreview();
+    showMsg(msg, true, `Gespeichert: ${T.pct(creator.statusCode)}. Der Telegram-Bot übernimmt den neuen Steuersatz automatisch.`);
+  } catch (ex) {
+    showMsg(msg, false, ex.message);
+  } finally {
+    setBusy(btn, false);
+  }
+});
+
+/* Live-Preis: Einkaufspreis × Preisstufe, echter Verlust mit eigenem Steuersatz */
 function updatePreview() {
   if (!creator) return;
-  $('#resultLabel').textContent = 'Dein Schnäppchenpreis';
+  $('#resultLabel').textContent = `Dein Verkaufspreis · Stufe ${P.tier(tiers.value).label}`;
   const purchase = P.parseMoney(priceIn.value);
   const ok = isFinite(purchase) && purchase > 0 && purchase <= 100000;
   priceIn.setAttribute('aria-invalid', String(!ok && priceIn.value.trim() !== ''));
+  tiers.update(ok ? purchase : NaN, creator.statusCode);
   if (!ok) {
     counter.set(null);
     $('#resultRows').innerHTML = '';
-    $('#resultNote').textContent = priceIn.value.trim() ? 'Bitte nur eine Zahl eingeben, z. B. 27,90' : 'Gib deinen Einkaufspreis ein – der Preis wird live berechnet.';
+    $('#resultNote').textContent = priceIn.value.trim() ? 'Bitte nur eine Zahl eingeben, z. B. 27,90' : 'Gib deinen Einkaufspreis ein – Preis und echter Verlust werden live berechnet.';
     return;
   }
-  const b = P.breakdown(purchase, creator.statusCode);
-  counter.set(b.price);
-  $('#resultRows').innerHTML = breakdownHTML(b);
-  $('#resultNote').textContent = formulaText(creator.statusCode);
+  const o = P.offer(purchase, tiers.value, creator.statusCode);
+  counter.set(o.price);
+  $('#resultRows').innerHTML = offerRowsHTML(o);
+  $('#resultNote').textContent = LOSS_NOTE;
 }
 priceIn.addEventListener('input', updatePreview);
 priceIn.addEventListener('blur', () => {
@@ -93,38 +136,38 @@ priceIn.addEventListener('blur', () => {
   if (isFinite(v) && v > 0) priceIn.value = v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 });
 
-/* Web-Eingabemaske → neue Zeile im Google Sheet */
+/* Web-Upload → neue Zeile im Google Sheet */
 $('#productForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const err = $('#productError');
   err.hidden = true;
-  const fields = { shopLink: $('#shopLink'), price: priceIn, videoLink: $('#videoLink') };
-  Object.values(fields).forEach((f) => f.setAttribute('aria-invalid', 'false'));
   const urlOk = (v) => /^https?:\/\/\S+$/i.test(v);
-  const shopLink = fields.shopLink.value.trim();
+  const shopLink = $('#shopLink').value.trim();
   const purchase = P.parseMoney(priceIn.value);
-  const videoLink = fields.videoLink.value.trim();
+  const videoLink = $('#videoLink').value.trim();
+  ['shopLink', 'videoLink'].forEach((id) => $('#' + id).setAttribute('aria-invalid', 'false'));
   const problems = [];
-  if (!urlOk(shopLink)) { problems.push('TikTok Shop Produkt-Link'); fields.shopLink.setAttribute('aria-invalid', 'true'); }
+  if (!urlOk(shopLink)) { problems.push('TikTok Shop Produkt-Link'); $('#shopLink').setAttribute('aria-invalid', 'true'); }
   if (!(purchase > 0)) { problems.push('Einkaufspreis (reine Zahl)'); priceIn.setAttribute('aria-invalid', 'true'); }
-  if (!urlOk(videoLink)) { problems.push('TikTok-Video-Link'); fields.videoLink.setAttribute('aria-invalid', 'true'); }
+  if (videoLink && !urlOk(videoLink)) { problems.push('TikTok-Video-Link'); $('#videoLink').setAttribute('aria-invalid', 'true'); }
   if (problems.length) { err.textContent = 'Bitte prüfe: ' + problems.join(', ') + '.'; err.hidden = false; return; }
 
   const btn = $('#productBtn');
   setBusy(btn, true);
   try {
+    const tier = tiers.value;
     const res = await T.addProduct(creds, {
-      shopLink, price: purchase, videoLink,
+      shopLink, price: purchase, tier, videoLink, source: 'web',
       name: $('#pName').value.trim(), category: $('#pCat').value, description: $('#pDesc').value.trim(),
     });
-    const p = res.product;
-    const sheetPrice = typeof p.price === 'number' ? p.price : P.price(purchase, creator.statusCode);
-    $('#resultLabel').textContent = 'Inseriert ✓ Preis laut Tabelle (Spalte H)';
+    const o = P.offer(purchase, tier, creator.statusCode);
+    const sheetPrice = typeof res.product.price === 'number' ? res.product.price : o.price;
+    $('#resultLabel').textContent = `Hochgeladen ✓ Stufe ${o.tier.label}`;
     counter.set(sheetPrice);
-    $('#resultRows').innerHTML = breakdownHTML(P.breakdown(purchase, creator.statusCode));
-    $('#resultNote').textContent = 'Das Produkt ist gespeichert. Du kannst direkt das nächste einstellen.';
+    $('#resultRows').innerHTML = offerRowsHTML(o);
+    $('#resultNote').textContent = 'Das Sample ist in deinem Konto gespeichert. Du kannst direkt das nächste hochladen.';
     e.target.reset();
-    priceIn.addEventListener('input', () => { if ($('#resultLabel').textContent.startsWith('Inseriert')) updatePreview(); }, { once: true });
+    priceIn.addEventListener('input', updatePreview, { once: true });
     loadMine();
   } catch (ex) {
     err.textContent = ex.message; err.hidden = false;
@@ -133,36 +176,25 @@ $('#productForm').addEventListener('submit', async (e) => {
   }
 });
 
-/* Telegram-Username */
-$('#profileForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const msg = $('#profileMsg');
-  const btn = $('#profileBtn');
-  setBusy(btn, true);
-  try {
-    const res = await T.updateProfile(creds, $('#tgUser').value);
-    creator = res.creator;
-    $('#tgUser').value = creator.telegram;
-    msg.className = 'alert--ok'; msg.textContent = 'Gespeichert.';
-  } catch (ex) {
-    msg.className = 'alert--error'; msg.style.marginTop = '1rem'; msg.textContent = ex.message;
-  } finally {
-    msg.hidden = false; setBusy(btn, false);
-  }
-});
-
-/* Eigene Inserate */
+/* Eigene Samples */
 async function loadMine() {
   const list = $('#myList');
   try {
     const all = await T.getProducts();
     const mine = all.filter((p) => (p.userId || '').toLowerCase() === creator.userId.toLowerCase());
     $('#statCount').textContent = mine.length;
+    $('#statTg').textContent = mine.filter((p) => p.source === 'Telegram').length;
     list.innerHTML = mine.length
-      ? mine.map((p) => `<li><span class="n">${T.esc(p.name || p.videoTitle || 'TikTok Shop Produkt')}</span>
-          <span class="p">${T.fmtEUR(p.price)}</span>
-          <span class="meta">Einkauf ${T.fmtEUR(p.originalPrice)}${p.category ? ' · ' + T.esc(p.category) : ''}</span></li>`).join('')
-      : '<li><span class="empty-li">Noch keine Inserate. Leg oben dein erstes Produkt an.</span></li>';
+      ? mine.map((p) => {
+        const meta = [
+          `Einkauf ${T.fmtEUR(p.purchasePrice ?? p.originalPrice)}`,
+          p.tier ? `Stufe ${T.esc(p.tier)}` : '',
+          p.source ? `via ${T.esc(p.source)}` : '',
+        ].filter(Boolean).join(' · ');
+        return `<li><span class="n">${T.esc(p.name || p.videoTitle || 'TikTok Shop Produkt')}</span>
+          <span class="p">${T.fmtEUR(p.price)}</span><span class="meta">${meta}</span></li>`;
+      }).join('')
+      : '<li><span class="empty-li">Noch keine Samples. Lade dein erstes per Telegram hoch – oder hier im Web.</span></li>';
   } catch (err) {
     list.innerHTML = `<li><span class="empty-li">${T.esc(err.message)}</span></li>`;
   }

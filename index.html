@@ -53,9 +53,9 @@
 
           <article class="member glass" id="member" data-spring>
             <div class="member__col">
-              <b class="member__value">2 Wege</b>
+              <b class="member__value">3 Stufen</b>
               <div class="member__dots" aria-hidden="true"><i style="background:#00ff66"></i><i style="background:#ffffff"></i><i style="background:#3a3a40"></i><i style="background:#9a9aa3"></i></div>
-              <span class="member__cap">Telegram oder Web-Dashboard</span>
+              <span class="member__cap">Fair · Schnell · Sofort weg</span>
             </div>
             <img src="assets/img/creator-live.webp" alt="Smartphone auf Stativ filmt einen Creator" loading="lazy">
           </article>
@@ -68,10 +68,10 @@
       <span class="eyebrow">Dein Workflow</span>
       <h2 class="h-stack" id="ablauf-title" data-lines="In vier Schritten|zum ersten Deal">In vier Schritten zum ersten Deal</h2>
       <ul>
-        <li><a href="creator.html"><div class="row" data-spring><span class="row__idx">01</span><div class="row__txt"><h3 class="row__name">Registrieren</h3><p class="row__desc">Kurzer Check als TikTok Shop Creator, dein TikTok-Username und dein Steuersatz – einmalig.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
-        <li><a href="#wege"><div class="row" data-spring><span class="row__idx">02</span><div class="row__txt"><h3 class="row__name">Mit Telegram verbinden</h3><p class="row__desc">Ein Tipp verbindet dein Profil mit unserem Bot. Dort lädst du künftig Produkte hoch.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
-        <li><a href="#wege"><div class="row" data-spring><span class="row__idx">03</span><div class="row__txt"><h3 class="row__name">Produkt einstellen</h3><p class="row__desc">Shop-Link, Einkaufspreis und Video-Link – per Telegram oder im Web-Dashboard.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
-        <li><a href="#rechner"><div class="row" data-spring><span class="row__idx">04</span><div class="row__txt"><h3 class="row__name">Preis steht sofort</h3><p class="row__desc">Wir berechnen den Schnäppchenpreis automatisch aus Einkaufspreis und Steuersatz.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
+        <li><a href="creator.html"><div class="row" data-spring><span class="row__idx">01</span><div class="row__txt"><h3 class="row__name">Registrieren</h3><p class="row__desc">Kurzer Check als TikTok Shop Creator, dein TikTok-Username und dein Steuersatz – einmalig in der Web-App.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
+        <li><a href="#wege"><div class="row" data-spring><span class="row__idx">02</span><div class="row__txt"><h3 class="row__name">Mit Telegram verbinden</h3><p class="row__desc">Aus der Web-App direkt zum Bot. Dort meldest du dich einmalig mit Username und Creator-Key an.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
+        <li><a href="#wege"><div class="row" data-spring><span class="row__idx">03</span><div class="row__txt"><h3 class="row__name">Sample hochladen</h3><p class="row__desc">TikTok-Shop-Link schicken und Einkaufspreis eingeben – die Produktdaten holen wir automatisch.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
+        <li><a href="#rechner"><div class="row" data-spring><span class="row__idx">04</span><div class="row__txt"><h3 class="row__name">Preisstufe wählen</h3><p class="row__desc">Fair, Schnell oder Sofort weg – mit deinem echten Verlust nach Steuer. Dann ab in deine Web-App.</p></div><span class="row__arrow"><span><svg><use href="#i-arrow"/></svg></span></span></div></a></li>
       </ul>
     </section>
 
@@ -80,9 +80,9 @@
       <div class="calc__head">
         <div>
           <span class="eyebrow eyebrow--light">Preisrechner</span>
-          <h2 class="h-stack" id="calc-title" data-lines="Dein Preis,|sofort berechnet">Dein Preis, sofort berechnet</h2>
+          <h2 class="h-stack" id="calc-title" data-lines="Dein Preis,|dein echter Verlust">Dein Preis, dein echter Verlust</h2>
         </div>
-        <p class="calc__lead">Gib deinen Einkaufspreis ein und wähle deinen Steuersatz. Genau so rechnet später auch unsere Tabelle, wenn du ein Produkt einstellst.</p>
+        <p class="calc__lead">Einkaufspreis eingeben, Steuersatz und Preisstufe wählen: Du siehst sofort den Verkaufspreis – und was dich der Verkauf nach Steuer wirklich kostet. Genau so rechnet auch der Telegram-Bot.</p>
       </div>
 
       <div class="calc__grid">
@@ -94,10 +94,12 @@
           </div>
           <p class="field-err" id="calcErr" hidden>Bitte eine Zahl eingeben, z. B. 27,90</p>
           <div class="calc__rate" id="calcRate"></div>
+          <p class="calc__label calc__tierlabel">Preisstufe</p>
+          <div id="calcTiers"></div>
         </div>
 
         <div class="calc__result" id="calcResult" data-spring aria-live="polite">
-          <span class="calc__rl">Dein Schnäppchenpreis im Shop</span>
+          <span class="calc__rl" id="calcLabel">Dein Verkaufspreis</span>
           <output class="calc__price" id="calcOut" for="calcPrice">–</output>
           <dl class="calc__rows" id="calcRows"></dl>
           <p class="calc__note" id="calcNote"></p>
@@ -111,8 +113,8 @@
       <div class="creators__grid">
         <div class="creators__intro">
           <img class="creators__icon" id="creatorIcon" data-spring src="assets/img/unbox-hands.webp" alt="Hände halten ein ausgepacktes Produkt" loading="lazy">
-          <h2 class="h-stack" id="wege-title" data-lines="Zwei Wege|zum|Inserat">Zwei Wege zum Inserat</h2>
-          <p class="creators__body" id="wegeBody">Lade Produkte direkt im Telegram-Chat hoch oder nutze das Web-Dashboard. In beiden Fällen landen Shop-Link, Einkaufspreis und Video-Link in unserer Tabelle – und der Preis wird automatisch berechnet.</p>
+          <h2 class="h-stack" id="wege-title" data-lines="Konto im Web,|Upload per|Telegram">Konto im Web, Upload per Telegram</h2>
+          <p class="creators__body" id="wegeBody">In der Web-App legst du dein Konto und deinen Steuersatz an. Hochgeladen wird per Telegram-Bot: Link schicken, Einkaufspreis eingeben, Preisstufe wählen – das Sample landet direkt in deinem Web-App-Konto.</p>
           <div class="creators__ctas">
             <a class="pill pill--solid" href="creator.html">Als Creator registrieren <span class="arr"><svg><use href="#i-arrow"/></svg></span></a>
             <a class="link-u" href="dashboard.html">Zum Login</a>
@@ -122,13 +124,13 @@
           <figure data-spring>
             <div class="tile">
               <img src="assets/img/creator-live.webp" alt="Smartphone auf Stativ filmt einen Creator" loading="lazy">
-              <figcaption class="cap"><b>Per Telegram</b><span>Produkt im Chat an unseren Bot schicken – fertig.</span></figcaption>
+              <figcaption class="cap"><b>Per Telegram</b><span>Link schicken, Preis eingeben, Stufe wählen.</span></figcaption>
             </div>
           </figure>
           <figure data-spring>
             <div class="tile tile--green">
               <img src="assets/img/creator-home.webp" alt="Creatorin filmt sich zu Hause" loading="lazy">
-              <figcaption class="cap"><b>Per Web-Dashboard</b><span>Shop-Link, Einkaufspreis und Video-Link eintragen.</span></figcaption>
+              <figcaption class="cap"><b>In der Web-App</b><span>Konto, Steuersatz und deine Samples.</span></figcaption>
             </div>
           </figure>
         </div>
@@ -137,8 +139,8 @@
 
     <!-- STATUS-CODES -->
     <section class="stats" id="status" aria-labelledby="stats-title">
-      <span class="eyebrow eyebrow--light">Status_Code</span>
-      <h2 class="h-stack" id="stats-title" data-lines="Dein Steuersatz,|dein Preis">Dein Steuersatz, dein Preis</h2>
+      <span class="eyebrow eyebrow--light">Preisstufen</span>
+      <h2 class="h-stack" id="stats-title" data-lines="Drei Stufen,|volle Transparenz">Drei Stufen, volle Transparenz</h2>
       <dl id="statusCells"></dl>
     </section>
 
@@ -147,9 +149,9 @@
       <span class="eyebrow">Gut zu wissen</span>
       <h2 class="h-stack" id="faq-title" data-lines="Kurz|erklärt">Kurz erklärt</h2>
       <ul>
-        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Warum fragt ihr nach meinem Steuersatz?</h3><p>Dein Steuersatz bestimmt deinen Status_Code. Daraus berechnen wir automatisch den Verkaufspreis deiner Produkte – du musst nichts selbst kalkulieren.</p></div><footer><b>Preis</b><span>Automatisch berechnet</span></footer></article></li>
+        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Warum fragt ihr nach meinem Steuersatz?</h3><p>Ein günstiger Verkauf kostet dich weniger, als es aussieht: Der Verlust mindert deine Steuer. Mit deinem Steuersatz zeigen wir dir den echten Verlust nach Steuer – als Schätzung, keine Steuerberatung.</p></div><footer><b>Steuer</b><span>Echter Verlust statt Bauchgefühl</span></footer></article></li>
         <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Wer kann mitmachen?</h3><p>Nur offizielle TikTok Shop Creator. Wer kein Shop Creator ist, kann sich nicht registrieren.</p></div><footer><b>Zugang</b><span>Nur TikTok Shop Creator</span></footer></article></li>
-        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Telegram oder Website?</h3><p>Beides. Nach der Registrierung verbindest du dich mit unserem Telegram-Bot – oder du stellst Produkte im Web-Dashboard ein.</p></div><footer><b>Upload</b><span>Telegram &amp; Web</span></footer></article></li>
+        <li data-spring><article class="qa"><div><span class="qa__glyph" aria-hidden="true">?</span><h3>Wie lade ich Samples hoch?</h3><p>Per Telegram-Bot: Link schicken, Einkaufspreis eingeben, Preisstufe wählen – fertig. Im Bot meldest du dich einmalig mit deinem Username und Creator-Key an.</p></div><footer><b>Upload</b><span>Per Telegram</span></footer></article></li>
       </ul>
     </section>
 

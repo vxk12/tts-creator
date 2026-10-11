@@ -69,8 +69,9 @@
           <section data-step="3" hidden>
             <p class="wstep__label">Schritt 3 von 3</p>
             <h1 class="wq">Kennst du deinen exakten Grenzsteuersatz?</h1>
-            <p class="wsub">Daraus ergibt sich dein Status_Code – und damit der Preis, zu dem deine Produkte im Shop erscheinen.</p>
+            <p class="wsub">Damit zeigen wir dir später zu jedem Sample deinen echten Verlust nach Steuer.</p>
             <div class="wbody" id="rate"></div>
+            <p class="rate-note" id="rateNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span></span></p>
             <div class="preview" id="preview" hidden>
               <div><small>Beispiel</small><span id="previewTxt"></span></div>
               <b id="previewPrice"></b>
@@ -85,21 +86,25 @@
           <section data-step="success" hidden>
             <div class="state-icon state-icon--ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
             <h1 class="wq">Willkommen, <span id="okUser"></span>!</h1>
-            <p class="wsub">Deine Registrierung ist gespeichert. Verbinde dich jetzt mit unserem Telegram-Bot, um Produkte direkt aus dem Chat hochzuladen.</p>
+            <p class="wsub">Deine Registrierung ist gespeichert. Jetzt noch Telegram verbinden – darüber lädst du deine Samples hoch.</p>
+            <ul class="sumlist">
+              <li><span>Creator-ID (User_ID)</span><b id="sumUser"></b></li>
+              <li><span>Steuersatz (Status_Code)</span><b id="sumRate"></b></li>
+            </ul>
+            <p class="flabel" style="margin-top:2rem">Dein Creator-Key</p>
+            <div class="keybox"><code id="creatorKey"></code><button type="button" class="btn-copy" id="copyKey">Kopieren</button></div>
+            <p class="fhint">Speichere diesen Key sicher. Du brauchst ihn für den Login im Telegram-Bot und im Web-Dashboard.</p>
+            <ol class="steps-tg">
+              <li>Tippe auf „Mit Telegram verbinden“ – der Bot öffnet sich mit deinem Username.</li>
+              <li>Schick dem Bot deinen Creator-Key. Er löscht die Nachricht sofort wieder.</li>
+              <li>Fertig: Ab jetzt kennt der Bot dein Konto und deinen Steuersatz.</li>
+            </ol>
             <div class="wactions">
               <a class="pill pill--neon pill--block" id="telegramBtn" target="_blank" rel="noopener noreferrer">
                 <svg class="tg" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3L18.7 19.4c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2L6.5 13.2l-4.7-1.5c-1-.3-1-1 .2-1.5L20.5 3c.9-.3 1.6.2 1.4 1.3z"/></svg>
                 Mit Telegram verbinden
               </a>
             </div>
-            <ul class="sumlist">
-              <li><span>Creator-ID (User_ID)</span><b id="sumUser"></b></li>
-              <li><span>Status_Code</span><b id="sumRate"></b></li>
-              <li><span>Dein Preisfaktor</span><b id="sumFactor"></b></li>
-            </ul>
-            <p class="flabel" style="margin-top:2rem">Dein Creator-Key</p>
-            <div class="keybox"><code id="creatorKey"></code><button type="button" class="btn-copy" id="copyKey">Kopieren</button></div>
-            <p class="fhint">Speichere diesen Key sicher. Du brauchst ihn für den Login im Web-Dashboard.</p>
             <div class="wactions"><a class="pill pill--light" href="dashboard.html">Zum Web-Dashboard <span class="arr"><svg><use href="#i-arrow"/></svg></span></a></div>
           </section>
         </form>

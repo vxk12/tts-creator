@@ -2,29 +2,31 @@
 
 Mobile-first Web-App (Deep Black + Neon-Grün `#00FF66`, Font Onest) im Editorial-Stil: Intro-Loader, Parallax-Hero, Clip-Masken-Reveals, Spring-Animationen, Smooth Scroll (Lenis).
 
-**Aktueller Fokus: Creator-Workflow & Preisberechnung.** Der Marktplatz für Käufer ist vorbereitet, aber noch nicht verlinkt.
+**Aktueller Fokus: Creator-Workflow.** Web-App für Konto & Steuersatz, Telegram-Bot für den Sample-Upload. Der Marktplatz für Käufer ist vorbereitet, aber noch nicht verlinkt.
 
 | Bereich | Datei | Zweck |
 |---|---|---|
-| **Creator-Startseite** | `index.html` | Workflow in 4 Schritten, interaktiver **Preisrechner**, zwei Upload-Wege (Telegram/Web), Status-Codes, FAQ |
-| **Registrierung (Stufe 1)** | `creator.html` | Shop-Creator-Check → TikTok-Username (Spalte B) → Grenzsteuersatz (Spalte C) → Telegram verbinden. Vorbelegung per `?rate=0.3&mode=bracket\|exact` aus dem Preisrechner |
-| **Dashboard (Stufe 2)** | `dashboard.html` | Web-Eingabemaske (Spalten E, F, G) mit **Live-Preisberechnung**, Telegram-Kontakt, eigene Inserate |
+| **Creator-Startseite** | `index.html` | Workflow, interaktiver **Preisrechner** (Preisstufen + echter Verlust nach Steuer), FAQ |
+| **Registrierung** | `creator.html` | Shop-Creator-Check → TikTok-Username (Spalte B) → Steuersatz (Spalte C) → Creator-Key → „Mit Telegram verbinden“ |
+| **Dashboard** | `dashboard.html` | Telegram verbinden (inkl. Creator-Key), **Steuersatz ändern**, Samples im Web hochladen, Übersicht der Samples |
+| **Telegram-Bot** | `bot/` | Login mit Web-App-Zugangsdaten, Upload: TikTok-Shop-Link → Einkaufspreis → Preisstufe → in die Web-App. Siehe [bot/README.md](bot/README.md) |
 | *Marktplatz (versteckt)* | `marktplatz.html`, `shop.html`, `product.html` | B2C-Schaufenster, Suche & Produktseiten – fertig, aber nicht verlinkt (`noindex`) |
 
-## Preisberechnung
+## Preisberechnung (vorläufig)
 
-Website (`PRICING` in `assets/js/api.js`) und Google Sheet (Formel in Spalte H, `CONFIG.PRICE_FORMULA` in `backend/Code.gs`) rechnen identisch:
+**Steuersatz** (Status_Code, Spalte C): exakt in % oder geschätzt über das Einkommen (unter 12.300 € → 0.00, 15.000–60.000 € → 0.30, über 66.000 € → 0.42). Jederzeit im Dashboard änderbar.
 
-| Status_Code (Spalte C) | Herkunft | Preis (Spalte H) |
-|---|---|---|
-| `0.00` | Einkommen unter 12.300 €/Jahr (oder exakt 0 %) | Einkaufspreis × 0,82 |
-| `0.30` | Einkommen 15.000–60.000 €/Jahr | Einkaufspreis × 0,70 |
-| `0.42` | Einkommen über 66.000 €/Jahr | Einkaufspreis × 0,58 |
-| `x` (exakt, z. B. `0.35`) | Grenzsteuersatz bekannt (0–60 %) | Einkaufspreis × (1 − x) |
+**Preisstufen:** Verkaufspreis = Einkaufspreis × Faktor
 
-Beispiel: 27,00 € bei Status `0.42` → 15,66 € (entspricht Zeile 2 der Tabelle).
+| Stufe | Faktor |
+|---|---|
+| Fair | 0,70 |
+| Schnell | 0,55 |
+| Sofort weg | 0,40 |
 
-> Wer die Formel ändert, muss sie an **beiden** Stellen anpassen.
+**Echter Verlust nach Steuer** = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz). Beispiel 27 € bei 30 %: Fair 18,90 € → Verlust 5,67 €.
+
+Die Logik steht an drei Stellen und muss gleich bleiben: `assets/js/api.js` (PRICING), `bot/pricing.py`, `backend/Code.gs` (CONFIG.TIERS + Formel in Spalte H = F × N). Website und Bot rechnen cent-genau gleich (kaufmännisch gerundet).
 
 Die Website ist rein statisch (HTML/CSS/JS, kein Build-Schritt). Als Datenbank dient das Google Sheet, angebunden über ein **Google Apps Script** (`backend/Code.gs`), das als kleine API läuft. Es gibt keinen eigenen Server und keine geheimen Schlüssel im Frontend.
 
@@ -44,12 +46,17 @@ Ohne eingetragene API-URL läuft die Seite im **Demo-Modus** mit Beispielprodukt
 | D | Produkt_Name | optional im Dashboard |
 | E | TTS_Shop_Link | Web-Maske Feld 1 |
 | F | Einkaufspreis (= Streichpreis im Schaufenster) | Web-Maske Feld 2 |
-| G | TikTok_Video_Link (= Video-Nachweis-Button) | Web-Maske Feld 3 |
-| H | Empfohlener_Verkaufspreis (Formel = Plattform-Preis) | Formel, wird automatisch gesetzt |
+| G | TikTok_Video_Link (= Video-Nachweis-Button) | optional |
+| H | Empfohlener_Verkaufspreis (Formel = F × N) | Formel, wird automatisch gesetzt |
 | I | Tax_Rate (gleicher Wert wie C) | automatisch |
 | J | Kategorie (Tech / Beauty / Haushalt / Sonstiges) | optional im Dashboard |
 | K | Erstellt_Am | automatisch |
-| L | Beschreibung (erscheint auf der Produktseite) | optional im Dashboard |
+| L | Beschreibung | optional / Beta-Katalog |
+| M | Preisstufe (Fair / Schnell / Sofort weg) | Bot oder Dashboard |
+| N | Preisfaktor (0.70 / 0.55 / 0.40) – Spalte H = F × N | automatisch |
+| O | Quelle (Telegram / Web) | automatisch |
+| P | Bild_URL | Beta-Katalog |
+| Q | Shop_Preis (Preis im TikTok Shop, Streichpreis) | Beta-Katalog |
 
 Im Schaufenster erscheinen alle Zeilen, deren Spalte H einen gültigen Preis enthält.
 
@@ -66,7 +73,7 @@ Im Schaufenster erscheinen alle Zeilen, deren Spalte H einen gültigen Preis ent
 **Formel in Spalte H** (in `backend/Code.gs` unter `CONFIG.PRICE_FORMULA` anpassbar):
 
 ```
-=IF(F="","",IF(I=0,ROUND(F*0.82,2),ROUND(F*(1-I),2)))
+=IF(OR(F="",N=""),"",ROUND(F*N,2))
 ```
 
 ---
@@ -78,7 +85,7 @@ Im Schaufenster erscheinen alle Zeilen, deren Spalte H einen gültigen Preis ent
 1. Google Sheet öffnen → **Erweiterungen → Apps Script**.
 2. Den Inhalt von `backend/Code.gs` komplett einfügen und speichern.
 3. Oben die Funktion **`setup`** auswählen → **Ausführen** → Berechtigungen bestätigen.
-   Das legt das Blatt `Creators` und fehlende Spaltenköpfe (J–L) an.
+   Das legt das Blatt `Creators` und fehlende Spaltenköpfe (J–Q) an.
 4. **Bereitstellen → Neue Bereitstellung → Typ: Web-App**
    - Ausführen als: **Ich**
    - Zugriff: **Jeder**
