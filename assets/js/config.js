@@ -6,5 +6,5 @@
  */
 window.TTS_CONFIG = {
   API_URL: '',
-  TELEGRAM_BOT: 'DeinTelegramBot',
+  TELEGRAM_BOT: 'ttsprojekt_bot',
 };
