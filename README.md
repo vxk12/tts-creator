@@ -1,36 +1,38 @@
 # TTS Creator-Plattform
 
-Mobile-first Web-App (Deep Black + Neon-Grün `#00FF66`, Font Onest) im Editorial-Stil: Intro-Loader, Parallax-Hero, Clip-Masken-Reveals, Spring-Animationen, Smooth Scroll (Lenis).
+Web-App für TikTok Shop Creator: registrieren (inkl. Steuer-Onboarding), Telegram verbinden, Samples per Bot hochladen.
+Gebaut mit **Next.js 16, Tailwind CSS v4, Motion, Geist** und Phosphor-Icons. Dark-Mode mit einem Akzent (Neon-Grün `#00FF66`).
 
-**Aktueller Fokus: Creator-Workflow.** Web-App für Konto & Steuersatz, Telegram-Bot für den Sample-Upload. Der Marktplatz für Käufer ist vorbereitet, aber noch nicht verlinkt.
+Der frühere statische Stand (Editorial-Design, Marktplatz) ist als Git-Tag `v1-editorial` gesichert.
 
-| Bereich | Datei | Zweck |
+| Bereich | Route | Zweck |
 |---|---|---|
-| **Creator-Startseite** | `index.html` | Workflow, interaktiver **Preisrechner** (Preisstufen + echter Verlust nach Steuer), FAQ |
-| **Registrierung** | `creator.html` | Shop-Creator-Check → TikTok-Username (Spalte B) → Steuersatz (Spalte C) → Creator-Key → „Mit Telegram verbinden“ |
-| **Dashboard** | `dashboard.html` | Telegram verbinden (inkl. Creator-Key), **Steuersatz ändern**, Samples im Web hochladen, Übersicht der Samples |
-| **Telegram-Bot** | `bot/` | Login mit Web-App-Zugangsdaten, Upload: TikTok-Shop-Link → Einkaufspreis → Preisstufe → in die Web-App. Siehe [bot/README.md](bot/README.md) |
-| *Marktplatz (versteckt)* | `marktplatz.html`, `shop.html`, `product.html` | B2C-Schaufenster, Suche & Produktseiten – fertig, aber nicht verlinkt (`noindex`) |
+| Startseite | `/` | Ablauf, echter Verlust nach Steuer, Preisrechner, FAQ |
+| Registrierung | `/registrieren` | Shop-Creator-Check → TikTok-Username (Spalte B) → Grenzsteuersatz (Spalte C) → Creator-Key + „Mit Telegram verbinden“ |
+| Dashboard | `/dashboard` | Login, Telegram verbinden (Creator-Key), Steuersatz ändern, Samples, optionaler Upload im Browser |
+| Telegram-Bot | `bot/` | Login mit Web-App-Zugangsdaten, Upload: TikTok-Shop-Link → Einkaufspreis → Preisstufe. Siehe [bot/README.md](bot/README.md) |
+| Backend | `backend/Code.gs` | Google Apps Script als API zum Google Sheet |
+
+Alte Adressen (`creator.html`, `dashboard.html`, …) werden per Redirect auf die neuen Routen weitergeleitet.
+
+## Entwicklung
+
+```bash
+npm install
+npm run dev        # http://localhost:3000
+npm run build      # Produktions-Build
+npm test           # Preislogik inkl. Abgleich mit dem Bot (bot/pricing.py)
+```
 
 ## Preisberechnung (vorläufig)
 
-**Steuersatz** (Status_Code, Spalte C): exakt in % oder geschätzt über das Einkommen (unter 12.300 € → 0.00, 15.000–60.000 € → 0.30, über 66.000 € → 0.42). Jederzeit im Dashboard änderbar.
+**Steuersatz** (Status_Code, Spalte C): exakt in % oder geschätzt über das Einkommen (unter 12.300 € → 0.00, 15.000 bis 60.000 € → 0.30, über 66.000 € → 0.42). Jederzeit im Dashboard änderbar.
 
-**Preisstufen:** Verkaufspreis = Einkaufspreis × Faktor
-
-| Stufe | Faktor |
-|---|---|
-| Fair | 0,70 |
-| Schnell | 0,55 |
-| Sofort weg | 0,40 |
+**Preisstufen:** Verkaufspreis = Einkaufspreis × Faktor (Fair 0,70 · Schnell 0,55 · Sofort weg 0,40)
 
 **Echter Verlust nach Steuer** = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz). Beispiel 27 € bei 30 %: Fair 18,90 € → Verlust 5,67 €.
 
-Die Logik steht an drei Stellen und muss gleich bleiben: `assets/js/api.js` (PRICING), `bot/pricing.py`, `backend/Code.gs` (CONFIG.TIERS + Formel in Spalte H = F × N). Website und Bot rechnen cent-genau gleich (kaufmännisch gerundet).
-
-Die Website ist rein statisch (HTML/CSS/JS, kein Build-Schritt). Als Datenbank dient das Google Sheet, angebunden über ein **Google Apps Script** (`backend/Code.gs`), das als kleine API läuft. Es gibt keinen eigenen Server und keine geheimen Schlüssel im Frontend.
-
-Ohne eingetragene API-URL läuft die Seite im **Demo-Modus** mit Beispielprodukten. Registrierungen und Inserate werden dann nur im Browser gespeichert.
+Die Logik steht an drei Stellen und muss gleich bleiben: `lib/pricing.ts`, `bot/pricing.py`, `backend/Code.gs` (CONFIG.TIERS + Formel in Spalte H). `npm test` prüft Website und Bot über 9.000 Fälle auf cent-genaue Gleichheit.
 
 ---
 
@@ -93,65 +95,33 @@ Im Schaufenster erscheinen alle Zeilen, deren Spalte H einen gültigen Preis ent
 
 > Nach jeder Änderung an `Code.gs`: **Bereitstellen → Bereitstellungen verwalten → Bearbeiten → Neue Version**. Sonst bleibt die alte Version aktiv.
 
-### 2. Frontend konfigurieren
+### 2. Web-App mit dem Backend verbinden
 
-In `assets/js/config.js` eintragen:
+In `lib/config.ts` die Web-App-URL eintragen (oder in Vercel die Umgebungsvariable `NEXT_PUBLIC_API_URL` setzen):
 
-```js
-window.TTS_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/XXXX/exec',
-  TELEGRAM_BOT: 'EuerBotName', // ohne @
-};
+```ts
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://script.google.com/macros/s/XXXX/exec";
+export const TELEGRAM_BOT = process.env.NEXT_PUBLIC_TELEGRAM_BOT ?? "ttsprojekt_bot";
 ```
 
-### 3. Hosting
+Ohne API-URL läuft die Seite im **Demo-Modus**: Registrierungen und Samples werden nur im Browser gespeichert.
 
-Die Website ist statisch und läuft auf jedem Hoster:
+### 3. Hosting (Vercel)
 
-- **Vercel / Netlify:** Repository importieren. Framework „Other“, kein Build-Befehl, Ausgabeverzeichnis = Root.
-- **GitHub Pages:** Repo → Settings → Pages → Branch `main`, Ordner `/ (root)`.
-- **Lokal testen:** `python3 -m http.server 8080` → http://localhost:8080
-
----
-
-## Ablauf
-
-**Onboarding (Stufe 1)**
-1. „Bist du offizieller TikTok Shop Creator?“ – bei NEIN wird die Nutzung sofort verweigert.
-2. TikTok-Username → Spalte B.
-3. „Kennst du deinen exakten Grenzsteuersatz?“
-   - JA → Eingabe in % (35 → `0.35` in Spalte C)
-   - NEIN → Unter 12.300 € = `0.00`, 15.000–60.000 € = `0.30`, über 66.000 € = `0.42`
-4. Erfolgsseite mit „Mit Telegram verbinden“ und dem persönlichen **Creator-Key**, den man für den Web-Login braucht.
-
-**Dashboard (Stufe 2)**
-Login mit Username + Creator-Key. Die Maske hat drei Felder: Shop-Link (E), Einkaufspreis (F) und Video-Link (G). User_ID und Status_Code werden serverseitig ergänzt, die Formel in H berechnet sofort den Preis.
-
----
-
-## Telegram-Anbindung
-
-- **„Mit Telegram verbinden“** öffnet `https://t.me/<BOT>?start=<payload>`. `payload` ist der TikTok-Username als **Base64url** (Telegram erlaubt im Start-Parameter keine Punkte). Im Bot dekodieren, z. B. in Python: `base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)).decode()`.
-- **„Jetzt kaufen“** führt in den privaten Chat des Creators (`https://t.me/<Telegram_Username>` aus Blatt `Creators`, Spalte D). Den Username trägt der Creator im Dashboard ein, oder euer Bot schreibt ihn in Spalte D. Ist keiner hinterlegt, landet der Käufer beim Bot mit `?start=kauf_<Produkt_ID>`.
+Das Repo ist mit Vercel verbunden; jeder Push auf `main` wird automatisch gebaut. `vercel.json` setzt das Framework auf Next.js. Commits müssen vom GitHub-Account `vxk12` stammen (Vercel Hobby).
 
 ## Projektstruktur
 
 ```
-index.html              Creator-Startseite (Workflow, Preisrechner)
-creator.html            Registrierung (Stufe 1)
-dashboard.html          Creator-Dashboard (Stufe 2)
-marktplatz.html         Marktplatz-Startseite (noch nicht verlinkt)
-shop.html, product.html Suche & Produktseiten (noch nicht verlinkt)
-assets/css/store.css    Design aller Seiten (rem-basiert, adaptiv skaliert)
-assets/js/config.js     API-URL + Telegram-Bot
-assets/js/api.js        API-Anbindung, Preislogik (PRICING), Demo-Modus
-assets/js/core.js       Motion-Kern: Lenis, Spring-Animationen, Reveals, Parallax
-assets/js/store.js      Header, Menü, Footer (Creator- & Shop-Variante), Produktkarten
-assets/js/pricing-ui.js Steuersatz-Auswahl, animierte Preisanzeige, Aufschlüsselung
-assets/js/creator-home.js, onboarding.js, dashboard.js
-assets/js/home.js, shop-page.js, product.js   (Marktplatz)
-assets/img/             Bilder (Unsplash-Lizenz) + Favicon
-backend/Code.gs         Google Apps Script (API zum Google Sheet)
+app/                    Seiten (/, /registrieren, /dashboard), Layout, globale Styles
+components/landing/     Hero, Ablauf (Bento), Verlust-Statement, Preisrechner, FAQ, CTA
+components/onboarding/  Registrierungs-Assistent
+components/dashboard/   Dashboard (Login, Telegram, Steuersatz, Samples, Upload)
+components/pricing/     Steuersatz-Auswahl, Preisstufen, animierte Beträge
+components/ui/          Navigation, Footer, Buttons, Hinweise
+lib/                    Preislogik, API-Anbindung, Konfiguration
+public/img/             Bilder (Unsplash-Lizenz), Beta-Produktbilder
+tests/                  Tests der Preislogik
+backend/Code.gs         Google Apps Script
+bot/                    Telegram-Bot (Python)
 ```
-
-Die Kennzahlen auf der Startseite (Live-Deals, aktive Creator, Ø Ersparnis, Anteil mit Video-Nachweis) werden live aus den Produktdaten berechnet. Produktbilder kommen aus dem TikTok-Video (Vorschaubild); fehlt es, wird ein Kategorie-Bild angezeigt.

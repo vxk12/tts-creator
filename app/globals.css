@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/*
+ * Design-Tokens: TTS Deals (Dark only, laut Briefing „hochwertiger Dark-Mode“)
+ * Ein Akzent: Neon-Grün #00FF66 (Markenfarbe, bewusst gesetzt; keine Glows).
+ * Radius-Regel: interaktive Elemente = Pill, Flächen/Panels = 20px (rounded-card), Textfelder = 12px (rounded-xl).
+ */
+@theme {
+  --color-ink-950: #0a0b0a;
+  --color-ink-900: #101210;
+  --color-ink-850: #151815;
+  --color-ink-800: #1b1f1c;
+  --color-ink-700: #262b27;
+  --color-fg: #eef2ee;
+  --color-fg-muted: #a3aba5;
+  --color-fg-subtle: #7f8781;
+  --color-neon: #00ff66;
+  --color-neon-soft: #5cff9a;
+  --color-neon-ink: #03140a;
+  --color-danger: #ff6b6b;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --radius-card: 1.25rem;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    background: var(--color-ink-950);
+    color: var(--color-fg);
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: var(--color-neon);
+    color: var(--color-neon-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-neon);
+    outline-offset: 3px;
+    border-radius: 0.5rem;
+  }
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Bild-Scrim für Text auf Fotos (Kontrast) */
+  .scrim-b {
+    background: linear-gradient(to top, rgb(10 11 10 / 0.92) 0%, rgb(10 11 10 / 0.55) 45%, rgb(10 11 10 / 0) 100%);
+  }
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

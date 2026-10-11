@@ -112,7 +112,7 @@ def menu_buttons(ctx: ContextTypes.DEFAULT_TYPE) -> list[list[InlineKeyboardButt
     return [
         [InlineKeyboardButton("📦 Sample hochladen", callback_data="menu:upload")],
         [InlineKeyboardButton("👤 Mein Konto", callback_data="menu:account"),
-         InlineKeyboardButton("🌐 Web-App", url=f"{cfg(ctx).web_app_url}/dashboard.html")],
+         InlineKeyboardButton("🌐 Web-App", url=f"{cfg(ctx).web_app_url}/dashboard")],
     ]
 
 
@@ -158,7 +158,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         ctx.user_data["login_user"] = username
         await say(update, f"{intro}\n\n🔑 Schick mir jetzt deinen <b>Creator-Key</b> für <b>@{esc(username)}</b>.\n<i>Die Nachricht mit dem Key lösche ich sofort wieder.</i>{demo}")
         return LOGIN_KEY
-    await say(update, f"{intro}\n\n👤 Wie lautet dein <b>TikTok-Username</b>?\n\nNoch kein Konto? <a href=\"{cfg(ctx).web_app_url}/creator.html\">Hier registrieren</a>{demo}")
+    await say(update, f"{intro}\n\n👤 Wie lautet dein <b>TikTok-Username</b>?\n\nNoch kein Konto? <a href=\"{cfg(ctx).web_app_url}/registrieren\">Hier registrieren</a>{demo}")
     return LOGIN_USER
 
 
@@ -386,7 +386,7 @@ async def up_confirm(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await say(
         update,
         f"🎉 <b>Hochgeladen!</b>\n\n<b>{esc(product.name)}</b> für <b>{price_txt}</b> ist jetzt in deinem Web-App-Konto.",
-        [[InlineKeyboardButton("🌐 Im Dashboard ansehen", url=f"{cfg(ctx).web_app_url}/dashboard.html")],
+        [[InlineKeyboardButton("🌐 Im Dashboard ansehen", url=f"{cfg(ctx).web_app_url}/dashboard")],
          [InlineKeyboardButton("📦 Nächstes Sample", callback_data="menu:upload")]],
     )
     return ConversationHandler.END
@@ -412,7 +412,7 @@ async def account(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         f"👤 <b>Dein Konto</b>\n\nTikTok: <b>@{esc(session.user_id)}</b>\n"
         f"Steuersatz: <b>{fmt_rate(session.status_code)}</b>\n\n"
         "Den Steuersatz änderst du in der Web-App – der Bot übernimmt ihn automatisch.",
-        [[InlineKeyboardButton("🌐 Steuersatz in der Web-App ändern", url=f"{cfg(ctx).web_app_url}/dashboard.html")],
+        [[InlineKeyboardButton("🌐 Steuersatz in der Web-App ändern", url=f"{cfg(ctx).web_app_url}/dashboard")],
          [InlineKeyboardButton("🚪 Abmelden", callback_data="menu:logout")]],
     )
 

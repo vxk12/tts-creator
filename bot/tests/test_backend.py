@@ -12,7 +12,7 @@ from storage import SessionStore
 SAMPLE = NewSample(
     shop_link="https://vm.tiktok.com/abc/", purchase=D("27.00"), tier="fair", video_link="",
     name="Testprodukt", description="Beschreibung", category="Tech",
-    image="assets/img/beta/earbuds.jpg", shop_price=D("39.90"),
+    image="img/beta/earbuds.jpg", shop_price=D("39.90"),
 )
 
 

@@ -119,7 +119,7 @@ function addProduct_(body) {
   const name = String(body.name || '').trim().slice(0, 120);
   const category = CONFIG.CATEGORIES.indexOf(body.category) >= 0 ? body.category : '';
   const description = String(body.description || '').trim().slice(0, 1500);
-  const image = /^(https:\/\/\S+|assets\/[\w\/.-]+)$/.test(String(body.image || '')) ? String(body.image) : '';
+  const image = /^(https:\/\/\S+|(assets\/)?img\/[\w\/.-]+)$/.test(String(body.image || '')) ? String(body.image) : '';
   const shopPrice = Number(body.shopPrice);
   const source = body.source === 'telegram' ? 'Telegram' : 'Web';
 

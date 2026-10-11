@@ -5,3 +5,6 @@ bot/.env
 bot/.venv/
 bot/data/
 __pycache__/
+.next/
+next-env.d.ts
+*.tsbuildinfo
