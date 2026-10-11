@@ -55,7 +55,16 @@ class FakeTelegram(BaseRequest):
 
     def sent(self):
         """Texte/Captions aller gesendeten Nachrichten."""
-        return [p.get("text") or p.get("caption") or "" for api, p in self.calls if api in ("sendMessage", "sendPhoto")]
+        return [p.get("text") or p.get("caption") or "" for api, p in self.calls if api in ("sendMessage", "sendPhoto", "editMessageText")]
+
+    def buttons(self):
+        """Callback-Daten aller Buttons der zuletzt gesendeten/bearbeiteten Nachricht."""
+        for api, p in reversed(self.calls):
+            if api in ("sendMessage", "sendPhoto", "editMessageText") and p.get("reply_markup"):
+                markup = p["reply_markup"]
+                markup = json.loads(markup) if isinstance(markup, str) else markup
+                return [b.get("callback_data") or b.get("url") for row in markup["inline_keyboard"] for b in row]
+        return []
 
     def take(self):
         out = self.sent()
@@ -81,6 +90,7 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
         self.tmp.cleanup()
 
     async def text(self, text):
+        self.tg.calls.clear()          # nur die Antworten auf diese Nachricht auswerten
         self.update_id += 1
         msg = {"message_id": self.update_id, "date": 0, "chat": {"id": CHAT, "type": "private"}, "from": USER, "text": text}
         if text.startswith("/"):
@@ -159,6 +169,73 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
         out = await self.text(f"/start {payload}")
         self.assertIn("@demo", out[0])
         self.assertIn("Creator-Key", out[0])
+
+    async def login_demo(self):
+        await self.text("/start")
+        await self.text("demo")
+        await self.text("demo-1234")
+
+    async def tap_keep(self, data):
+        """Wie tap(), aber Aufrufe bleiben für buttons() erhalten."""
+        self.update_id += 1
+        cq = {"id": str(self.update_id), "from": USER, "chat_instance": "c", "data": data,
+              "message": {"message_id": 1, "date": 0, "chat": {"id": CHAT, "type": "private"}, "text": "…"}}
+        self.tg.calls.clear()
+        await self.app.process_update(Update.de_json({"update_id": self.update_id, "callback_query": cq}, self.app.bot))
+        return self.tg.sent()
+
+    async def test_account_has_back_button(self):
+        await self.login_demo()
+        out = await self.tap_keep("menu:account")
+        self.assertIn("Dein Konto", out[-1])
+        self.assertIn("menu:main", self.tg.buttons())
+        out = await self.tap_keep("menu:main")
+        self.assertIn("Menü", out[-1])
+        self.assertIn("menu:upload", self.tg.buttons())
+
+    async def test_logout_needs_confirmation(self):
+        await self.login_demo()
+        out = await self.tap_keep("menu:logout_ask")
+        self.assertIn("wirklich", out[-1])
+        self.assertEqual(self.tg.buttons(), ["menu:logout", "menu:account"])
+        out = await self.tap_keep("menu:account")          # Zurück
+        self.assertIn("Dein Konto", out[-1])
+        out = await self.tap_keep("menu:logout_ask")
+        out = await self.tap_keep("menu:logout")
+        self.assertIn("Abgemeldet", out[-1])
+        out = await self.text("https://vm.tiktok.com/abc/")
+        self.assertIn("nicht angemeldet", out[0])
+
+    async def test_cancel_buttons_in_upload(self):
+        await self.login_demo()
+        await self.text("/neu")
+        self.assertIn("flow:cancel", self.tg.buttons() or ["flow:cancel"])
+        await self.text("https://vm.tiktok.com/ZG9A86bGdeaah-ro48Q/")
+        out = await self.tap_keep("flow:cancel")            # beim Preis abbrechen
+        self.assertIn("Abgebrochen", out[-1])
+        out = await self.text("27")                         # wird NICHT mehr als Preis verstanden
+        self.assertNotIn("Preisstufe", " ".join(out))
+        # beim Wählen der Preisstufe abbrechen
+        await self.text("https://vm.tiktok.com/ZG9A86bGdeaah-ro48Q/")
+        await self.text("27")
+        self.tg.calls.clear()
+        out = await self.tap_keep("flow:cancel")
+        self.assertIn("Abgebrochen", out[-1])
+
+    async def test_menu_button_ends_running_upload(self):
+        await self.login_demo()
+        await self.text("https://vm.tiktok.com/ZG9A86bGdeaah-ro48Q/")
+        out = await self.tap_keep("menu:account")           # mitten im Upload aufs Konto
+        self.assertIn("Dein Konto", out[-1])
+        out = await self.text("27")                         # kein Preis-Schritt mehr aktiv
+        self.assertNotIn("Preisstufe", " ".join(out))
+
+    async def test_login_can_be_cancelled(self):
+        await self.text("/start")
+        out = await self.tap_keep("flow:cancel")
+        self.assertIn("Abgebrochen", out[-1])
+        out = await self.text("demo")                       # kein Login-Schritt mehr aktiv
+        self.assertIn("/start", out[0])
 
     async def test_upload_requires_login(self):
         out = await self.text("https://vm.tiktok.com/abc/")

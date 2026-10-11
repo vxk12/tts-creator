@@ -47,10 +47,11 @@ Der Bot läuft, solange das Terminal offen ist (Polling). Für den Dauerbetrieb 
 | Befehl | Funktion |
 |---|---|
 | `/start` | Anmelden bzw. Hauptmenü |
+| `/menu` | Hauptmenü |
 | `/neu` | Sample hochladen (oder einfach einen Link schicken) |
 | `/konto` | Konto & Steuersatz |
-| `/abbrechen` | Aktuellen Vorgang abbrechen |
-| `/abmelden` | Telegram vom Konto trennen |
+| `/abbrechen` | Aktuellen Vorgang abbrechen (jeder Schritt hat auch einen „Abbrechen“-Button) |
+| `/abmelden` | Telegram vom Konto trennen (im Konto-Menü mit Bestätigung) |
 
 ## Tests
 

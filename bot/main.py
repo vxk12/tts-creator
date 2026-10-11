@@ -75,7 +75,10 @@ async def say(update: Update, text: str, buttons: list[list[InlineKeyboardButton
 async def close_buttons(update: Update) -> None:
     """Buttons der angetippten Nachricht entfernen (verhindert Doppel-Klicks)."""
     if update.callback_query:
-        await update.callback_query.answer()
+        try:
+            await update.callback_query.answer()
+        except TelegramError:
+            pass
         try:
             await update.callback_query.edit_message_reply_markup(None)
         except TelegramError:
@@ -106,6 +109,32 @@ def decode_payload(payload: str) -> str | None:
     except (binascii.Error, UnicodeDecodeError, ValueError):
         return None
     return name if USER_RE.match(name) else None
+
+
+CANCEL_ROW = [InlineKeyboardButton("✖️ Abbrechen", callback_data="flow:cancel")]
+BACK_ROW = [InlineKeyboardButton("⬅️ Zurück zum Menü", callback_data="menu:main")]
+
+
+async def show(update: Update, text: str, buttons: list[list[InlineKeyboardButton]] | None = None) -> None:
+    """Menü-Ansichten: bei Button-Klick die Nachricht ersetzen statt eine neue zu schicken."""
+    query = update.callback_query
+    if query:
+        try:
+            await query.answer()
+        except TelegramError:   # wurde schon beantwortet
+            pass
+        try:
+            await query.edit_message_text(
+                text, parse_mode=ParseMode.HTML, disable_web_page_preview=True,
+                reply_markup=InlineKeyboardMarkup(buttons) if buttons else None,
+            )
+            return
+        except TelegramError:
+            try:   # z. B. Foto-Nachricht: Buttons entfernen, neue Nachricht senden
+                await query.edit_message_reply_markup(None)
+            except TelegramError:
+                pass
+    await say(update, text, buttons)
 
 
 def menu_buttons(ctx: ContextTypes.DEFAULT_TYPE) -> list[list[InlineKeyboardButton]]:
@@ -156,9 +185,9 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     username = decode_payload(payload)
     if username:
         ctx.user_data["login_user"] = username
-        await say(update, f"{intro}\n\n🔑 Schick mir jetzt deinen <b>Creator-Key</b> für <b>@{esc(username)}</b>.\n<i>Die Nachricht mit dem Key lösche ich sofort wieder.</i>{demo}")
+        await say(update, f"{intro}\n\n🔑 Schick mir jetzt deinen <b>Creator-Key</b> für <b>@{esc(username)}</b>.\n<i>Die Nachricht mit dem Key lösche ich sofort wieder.</i>{demo}", [CANCEL_ROW])
         return LOGIN_KEY
-    await say(update, f"{intro}\n\n👤 Wie lautet dein <b>TikTok-Username</b>?\n\nNoch kein Konto? <a href=\"{cfg(ctx).web_app_url}/registrieren\">Hier registrieren</a>{demo}")
+    await say(update, f"{intro}\n\n👤 Wie lautet dein <b>TikTok-Username</b>?\n\nNoch kein Konto? <a href=\"{cfg(ctx).web_app_url}/registrieren\">Hier registrieren</a>{demo}", [CANCEL_ROW])
     return LOGIN_USER
 
 
@@ -168,7 +197,7 @@ async def login_user(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         await say(update, "Das ist kein gültiger TikTok-Username (2–24 Zeichen: Buchstaben, Zahlen, Punkt, Unterstrich). Versuch es noch einmal.")
         return LOGIN_USER
     ctx.user_data["login_user"] = name
-    await say(update, f"🔑 Danke! Jetzt deinen <b>Creator-Key</b> für <b>@{esc(name)}</b> – du findest ihn auf der Erfolgsseite nach der Registrierung.\n<i>Die Nachricht lösche ich sofort wieder.</i>")
+    await say(update, f"🔑 Danke! Jetzt deinen <b>Creator-Key</b> für <b>@{esc(name)}</b> – du findest ihn auf der Erfolgsseite nach der Registrierung.\n<i>Die Nachricht lösche ich sofort wieder.</i>", [CANCEL_ROW])
     return LOGIN_KEY
 
 
@@ -185,7 +214,7 @@ async def login_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     try:
         creator = await backend(ctx).login(Credentials(user_id, key))
     except BackendError as exc:
-        await say(update, f"❌ {esc(str(exc))}\n\nSchick mir den Creator-Key noch einmal – oder /start für einen anderen Username.")
+        await say(update, f"❌ {esc(str(exc))}\n\nSchick mir den Creator-Key noch einmal – oder /start für einen anderen Username.", [CANCEL_ROW])
         return LOGIN_KEY
 
     store(ctx).save(update.effective_user.id, creator.user_id, key, creator.status_code)
@@ -216,7 +245,7 @@ async def upload_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     if not session:
         return ConversationHandler.END
     ctx.user_data["draft"] = {"session": session}
-    await say(update, "📦 <b>Neues Sample</b>\n\nSchick mir den <b>TikTok-Shop-Link</b> des Produkts.\n\n/abbrechen bricht ab.")
+    await say(update, "📦 <b>Neues Sample</b>\n\nSchick mir den <b>TikTok-Shop-Link</b> des Produkts.", [CANCEL_ROW])
     return UP_LINK
 
 
@@ -232,10 +261,10 @@ async def link_entry(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 async def up_link(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     link = extract_link(update.message.text or "")
     if not link:
-        await say(update, "Das sieht nicht nach einem Link aus. Schick mir den TikTok-Shop-Link (https://…).")
+        await say(update, "Das sieht nicht nach einem Link aus. Schick mir den TikTok-Shop-Link (https://…).", [CANCEL_ROW])
         return UP_LINK
     if not is_tiktok_link(link):
-        await say(update, "Bitte einen Link von TikTok Shop schicken (tiktok.com).")
+        await say(update, "Bitte einen Link von TikTok Shop schicken (tiktok.com).", [CANCEL_ROW])
         return UP_LINK
 
     product = product_from_link(link)
@@ -250,7 +279,7 @@ async def up_link(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await say(
         update,
         "💶 Was hast du für das Sample <b>bezahlt</b>?\nSchick mir den Einkaufspreis als Zahl, z. B. <code>27,90</code>.",
-        [[InlineKeyboardButton(f"Shop-Preis übernehmen · {fmt_eur(product.shop_price)}", callback_data="price:shop")]],
+        [[InlineKeyboardButton(f"Shop-Preis übernehmen · {fmt_eur(product.shop_price)}", callback_data="price:shop")], CANCEL_ROW],
     )
     return UP_PRICE
 
@@ -258,7 +287,7 @@ async def up_link(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 async def up_price(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     purchase = parse_money(update.message.text or "")
     if purchase is None:
-        await say(update, "Bitte nur eine positive Zahl schicken, z. B. <code>27,90</code>.")
+        await say(update, "Bitte nur eine positive Zahl schicken, z. B. <code>27,90</code>.", [CANCEL_ROW])
         return UP_PRICE
     ctx.user_data["draft"]["purchase"] = purchase
     return await show_tiers(update, ctx)
@@ -293,7 +322,7 @@ async def show_tiers(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         "",
         "Welche Preisstufe nimmst du?",
     ]
-    await say(update, "\n".join(lines), buttons)
+    await say(update, "\n".join(lines), buttons + [CANCEL_ROW])
     return UP_TIER
 
 
@@ -309,7 +338,7 @@ async def up_tier(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await say(
         update,
         "🎬 Hast du ein <b>TikTok-Testvideo</b> zu dem Produkt? Schick mir den Link – das ist dein Video-Nachweis für Käufer.",
-        [[InlineKeyboardButton("Überspringen", callback_data="video:skip")]],
+        [[InlineKeyboardButton("Überspringen", callback_data="video:skip"), CANCEL_ROW[0]]],
     )
     return UP_VIDEO
 
@@ -318,7 +347,7 @@ async def up_video(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     link = extract_link(update.message.text or "")
     if not link or not is_tiktok_link(link):
         await say(update, "Bitte einen TikTok-Video-Link schicken – oder auf „Überspringen“ tippen.",
-                  [[InlineKeyboardButton("Überspringen", callback_data="video:skip")]])
+                  [[InlineKeyboardButton("Überspringen", callback_data="video:skip"), CANCEL_ROW[0]]])
         return UP_VIDEO
     ctx.user_data["draft"]["video"] = link
     return await show_preview(update, ctx)
@@ -387,7 +416,7 @@ async def up_confirm(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         update,
         f"🎉 <b>Hochgeladen!</b>\n\n<b>{esc(product.name)}</b> für <b>{price_txt}</b> ist jetzt in deinem Web-App-Konto.",
         [[InlineKeyboardButton("🌐 Im Dashboard ansehen", url=f"{cfg(ctx).web_app_url}/dashboard")],
-         [InlineKeyboardButton("📦 Nächstes Sample", callback_data="menu:upload")]],
+         [InlineKeyboardButton("📦 Nächstes Sample", callback_data="menu:upload")], BACK_ROW],
     )
     return ConversationHandler.END
 
@@ -395,33 +424,72 @@ async def up_confirm(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 async def cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data.pop("draft", None)
     ctx.user_data.pop("login_user", None)
-    await say(update, "Abgebrochen.", menu_buttons(ctx) if store(ctx).get(update.effective_user.id) else None)
+    await close_buttons(update)
+    if store(ctx).get(update.effective_user.id):
+        await say(update, "✖️ Abgebrochen. Was möchtest du tun?", menu_buttons(ctx))
+    else:
+        await say(update, "✖️ Abgebrochen. Mit /start kannst du jederzeit neu beginnen.")
     return ConversationHandler.END
 
 
 # ---------------------------------------------------------------------------
-# Konto & Sonstiges
+# Menü, Konto & Sonstiges
 # ---------------------------------------------------------------------------
+async def main_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    session = store(ctx).get(update.effective_user.id)
+    if not session:
+        await show(update, "🔐 Du bist nicht angemeldet. Tippe /start, um dich mit deinem Web-App-Konto anzumelden.")
+        return
+    await show(update, f"📋 <b>Menü</b> · @{esc(session.user_id)}\n\nSchick mir einen TikTok-Shop-Link oder wähle eine Option.", menu_buttons(ctx))
+
+
 async def account(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
-    await close_buttons(update)
+    if update.callback_query:
+        try:
+            await update.callback_query.answer()
+        except TelegramError:
+            pass
     session = await require_session(update, ctx)
     if not session:
         return
-    await say(
+    await show(
         update,
         f"👤 <b>Dein Konto</b>\n\nTikTok: <b>@{esc(session.user_id)}</b>\n"
         f"Steuersatz: <b>{fmt_rate(session.status_code)}</b>\n\n"
         "Den Steuersatz änderst du in der Web-App – der Bot übernimmt ihn automatisch.",
         [[InlineKeyboardButton("🌐 Steuersatz in der Web-App ändern", url=f"{cfg(ctx).web_app_url}/dashboard")],
-         [InlineKeyboardButton("🚪 Abmelden", callback_data="menu:logout")]],
+         [InlineKeyboardButton("🚪 Abmelden", callback_data="menu:logout_ask")],
+         BACK_ROW],
+    )
+
+
+async def logout_ask(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    session = store(ctx).get(update.effective_user.id)
+    if not session:
+        await main_menu(update, ctx)
+        return
+    await show(
+        update,
+        f"🚪 Telegram wirklich von <b>@{esc(session.user_id)}</b> trennen?\n\nDu kannst dich jederzeit mit /start wieder anmelden.",
+        [[InlineKeyboardButton("Ja, abmelden", callback_data="menu:logout"),
+          InlineKeyboardButton("⬅️ Zurück", callback_data="menu:account")]],
     )
 
 
 async def logout(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
-    await close_buttons(update)
     store(ctx).delete(update.effective_user.id)
     ctx.user_data.clear()
-    await say(update, "🚪 Abgemeldet. Mit /start meldest du dich wieder an.")
+    await show(update, "🚪 Abgemeldet. Mit /start meldest du dich wieder an.")
+
+
+async def menu_from_flow(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Menü-Button während eines laufenden Uploads: Upload sauber beenden, dann Menü/Konto zeigen."""
+    ctx.user_data.pop("draft", None)
+    if update.callback_query.data == "menu:account":
+        await account(update, ctx)
+    else:
+        await main_menu(update, ctx)
+    return ConversationHandler.END
 
 
 async def help_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -432,7 +500,7 @@ async def help_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "2. Gib deinen Einkaufspreis ein\n"
         "3. Wähle eine Preisstufe – du siehst direkt deinen echten Verlust nach Steuer\n"
         "4. Lade das Sample in deine Web-App hoch\n\n"
-        "/neu – Sample hochladen\n/konto – Konto & Steuersatz\n/abbrechen – aktuellen Vorgang abbrechen\n/abmelden – Telegram trennen",
+        "/neu – Sample hochladen\n/menu – Hauptmenü\n/konto – Konto & Steuersatz\n/abbrechen – aktuellen Vorgang abbrechen\n/abmelden – Telegram trennen",
     )
 
 
@@ -459,6 +527,7 @@ async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 async def post_init(app: Application) -> None:
     await app.bot.set_my_commands([
         BotCommand("neu", "Sample hochladen"),
+        BotCommand("menu", "Hauptmenü"),
         BotCommand("konto", "Konto & Steuersatz"),
         BotCommand("hilfe", "So funktioniert's"),
         BotCommand("abbrechen", "Vorgang abbrechen"),
@@ -486,7 +555,8 @@ def build_app(config: Config, *, backend_impl: Backend | None = None, store_impl
             LOGIN_USER: [MessageHandler(text, login_user)],
             LOGIN_KEY: [MessageHandler(text, login_key)],
         },
-        fallbacks=[CommandHandler("abbrechen", cancel), CommandHandler("start", start)],
+        fallbacks=[CommandHandler("abbrechen", cancel), CallbackQueryHandler(cancel, pattern=r"^flow:cancel$"),
+                   CommandHandler("start", start)],
         allow_reentry=True,
         name="login",
     )
@@ -503,7 +573,12 @@ def build_app(config: Config, *, backend_impl: Backend | None = None, store_impl
             UP_VIDEO: [MessageHandler(text, up_video), CallbackQueryHandler(up_video_skip, pattern=r"^video:skip$")],
             UP_CONFIRM: [CallbackQueryHandler(up_confirm, pattern=r"^confirm:")],
         },
-        fallbacks=[CommandHandler("abbrechen", cancel), CommandHandler("neu", upload_start)],
+        fallbacks=[
+            CommandHandler("abbrechen", cancel),
+            CallbackQueryHandler(cancel, pattern=r"^flow:cancel$"),
+            CallbackQueryHandler(menu_from_flow, pattern=r"^menu:(main|account)$"),
+            CommandHandler("neu", upload_start),
+        ],
         allow_reentry=True,
         conversation_timeout=1800,
         name="upload",
@@ -511,12 +586,16 @@ def build_app(config: Config, *, backend_impl: Backend | None = None, store_impl
     app.add_handler(login_conv)
     app.add_handler(upload_conv)
     app.add_handler(CommandHandler("konto", account))
+    app.add_handler(CommandHandler(["menu", "menue"], main_menu))
+    app.add_handler(CallbackQueryHandler(main_menu, pattern=r"^menu:main$"))
     app.add_handler(CallbackQueryHandler(account, pattern=r"^menu:account$"))
+    app.add_handler(CallbackQueryHandler(logout_ask, pattern=r"^menu:logout_ask$"))
     app.add_handler(CommandHandler("abmelden", logout))
     app.add_handler(CallbackQueryHandler(logout, pattern=r"^menu:logout$"))
     app.add_handler(CommandHandler("hilfe", help_cmd))
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("abbrechen", cancel))
+    app.add_handler(CallbackQueryHandler(cancel, pattern=r"^flow:cancel$"))
     app.add_handler(MessageHandler(text, fallback_text))
     app.add_handler(CallbackQueryHandler(stale_button))
     app.add_error_handler(on_error)
