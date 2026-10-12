@@ -4,6 +4,7 @@
  */
 import { API_URL, DEMO, TELEGRAM_BOT } from "./config";
 import { tierPrice, tier as tierOf, type TierId } from "./pricing";
+import { invoiceTotals } from "./invoice";
 
 export interface Creator {
   userId: string;
@@ -26,7 +27,74 @@ export interface Sample {
   tier: string;
   source: string;
   image?: string;
+  shopLink?: string;
+  videoLink?: string;
   createdAt: string | null;
+  status?: SampleStatus;
+  soldAt?: string;
+  soldPrice?: number | null;
+}
+
+export type SampleStatus = "verfuegbar" | "verkauft";
+
+export interface SampleUpdate {
+  tier?: TierId;
+  status?: SampleStatus;
+  soldPrice?: number;
+  soldAt?: string; // yyyy-mm-dd
+}
+
+/** Absender auf Rechnungen (Steuer → Steuerdaten). */
+export interface TaxProfile {
+  name: string;
+  street: string;
+  zip: string;
+  city: string;
+  email: string;
+  taxNumber: string;
+  vatId: string;
+  iban: string;
+  smallBusiness: boolean;
+}
+
+export interface InvoiceRecipient {
+  name: string;
+  street: string;
+  zip: string;
+  city: string;
+}
+
+export interface InvoiceItem {
+  description: string;
+  qty: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface Invoice {
+  id: string;
+  number: string;
+  date: string;
+  serviceDate: string;
+  recipient: InvoiceRecipient;
+  items: InvoiceItem[];
+  net: number;
+  vatRate: number;
+  vat: number;
+  gross: number;
+  smallBusiness: boolean;
+  sender: TaxProfile;
+  sampleIds: string[];
+  createdAt: string;
+}
+
+export interface NewInvoice {
+  date: string;
+  serviceDate: string;
+  recipient: InvoiceRecipient;
+  items: { description: string; qty: number; unitPrice: number }[];
+  vatRate: number;
+  sampleIds: string[];
 }
 
 export interface NewSample {
@@ -102,6 +170,7 @@ async function apiPost<T>(payload: Record<string, unknown>): Promise<ApiResponse
 /* ---------- Demo-Modus ---------- */
 interface DemoCreator extends Creator {
   creatorKey: string;
+  taxProfile?: TaxProfile | null;
 }
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const demo = {
@@ -141,9 +210,10 @@ export async function register(input: { isShopCreator: boolean; userId: string; 
 }
 
 export async function login(creds: Credentials) {
-  if (!DEMO) return apiPost<{ creator: Creator }>({ action: "login", ...creds });
+  if (!DEMO) return apiPost<{ creator: Creator; taxProfile?: TaxProfile | null }>({ action: "login", ...creds });
   await delay(300);
-  return { ok: true, creator: publicCreator(demo.auth(creds)) };
+  const c = demo.auth(creds);
+  return { ok: true, creator: publicCreator(c), taxProfile: c.taxProfile ?? null };
 }
 
 export async function updateStatus(creds: Credentials, statusCode: number) {
@@ -179,4 +249,90 @@ export async function addSample(creds: Credentials, s: NewSample) {
 export async function getSamples(userId: string): Promise<Sample[]> {
   const all = DEMO ? demo.samples() : (await apiGet<{ products: Sample[] }>("products")).products;
   return all.filter((p) => (p.userId || "").toLowerCase() === userId.toLowerCase());
+}
+
+/** Neuer Backend-Stand nötig? (alte Apps-Script-Version kennt die Aktion nicht) */
+const outdated = (e: unknown) =>
+  e instanceof Error && e.message === "Unbekannte Aktion."
+    ? new Error("Das Backend ist noch nicht aktualisiert. Bitte den neuen Apps-Script-Code bereitstellen (siehe README).")
+    : e;
+
+async function apiPostNew<T>(payload: Record<string, unknown>) {
+  try {
+    return await apiPost<T>(payload);
+  } catch (e) {
+    throw outdated(e);
+  }
+}
+
+export async function updateSample(creds: Credentials, id: string, change: SampleUpdate) {
+  if (!DEMO) return apiPostNew<{ sample: Partial<Sample> & { id: string } }>({ action: "updateSample", ...creds, id, ...change });
+  await delay(300);
+  demo.auth(creds);
+  const all = demo.samples();
+  const s = all.find((x) => x.id === id);
+  if (!s) throw new Error("Sample nicht gefunden.");
+  if (change.tier) {
+    s.tier = tierOf(change.tier).label;
+    s.price = tierPrice(s.purchasePrice ?? 0, change.tier);
+  }
+  if (change.status === "verkauft") Object.assign(s, { status: "verkauft", soldAt: change.soldAt ?? today(), soldPrice: change.soldPrice ?? s.price });
+  if (change.status === "verfuegbar") Object.assign(s, { status: "verfuegbar", soldAt: "", soldPrice: null });
+  store.set("tts_demo_samples", all);
+  return { ok: true, sample: s };
+}
+
+export async function updateTaxProfile(creds: Credentials, taxProfile: TaxProfile) {
+  if (!DEMO) return apiPostNew<{ taxProfile: TaxProfile }>({ action: "updateTaxProfile", ...creds, taxProfile });
+  await delay(300);
+  if (!taxProfile.taxNumber && !taxProfile.vatId) throw new Error("Bitte gib deine Steuernummer oder USt-IdNr. an (Pflicht auf Rechnungen).");
+  const c = demo.auth(creds);
+  c.taxProfile = taxProfile;
+  demo.save(c);
+  return { ok: true, taxProfile };
+}
+
+export async function listInvoices(creds: Credentials): Promise<Invoice[]> {
+  if (!DEMO) return (await apiPostNew<{ invoices: Invoice[] }>({ action: "listInvoices", ...creds })).invoices;
+  await delay(250);
+  const c = demo.auth(creds);
+  return demoInvoices().filter((i) => i.sender && i.id.startsWith(c.userId + ":")).reverse();
+}
+
+export async function createInvoice(creds: Credentials, input: NewInvoice) {
+  if (!DEMO) return apiPostNew<{ invoice: Invoice }>({ action: "createInvoice", ...creds, ...input });
+  await delay(400);
+  const c = demo.auth(creds);
+  if (!c.taxProfile) throw new Error("Bitte hinterlege zuerst deine Rechnungsdaten (Steuer → Steuerdaten).");
+  const all = demoInvoices();
+  const year = input.date.slice(0, 4);
+  const count = all.filter((i) => i.id.startsWith(c.userId + ":") && i.number.startsWith(year)).length;
+  const vatRate = c.taxProfile.smallBusiness ? 0 : input.vatRate;
+  const t = invoiceTotals(input.items, vatRate);
+  const invoice: Invoice = {
+    id: `${c.userId}:${Date.now()}`,
+    number: `${year}-${String(count + 1).padStart(3, "0")}`,
+    date: input.date,
+    serviceDate: input.serviceDate,
+    recipient: input.recipient,
+    items: t.items,
+    net: t.net,
+    vatRate,
+    vat: t.vat,
+    gross: t.gross,
+    smallBusiness: c.taxProfile.smallBusiness,
+    sender: c.taxProfile,
+    sampleIds: input.sampleIds,
+    createdAt: new Date().toISOString(),
+  };
+  store.set("tts_demo_invoices", [...all, invoice]);
+  return { ok: true, invoice };
+}
+
+const demoInvoices = () => store.get<Invoice[]>("tts_demo_invoices", []);
+
+/** Heutiges Datum als yyyy-mm-dd (lokale Zeit). */
+export function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }

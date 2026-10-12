@@ -9,7 +9,11 @@ Der frühere statische Stand (Editorial-Design, Marktplatz) ist als Git-Tag `v1-
 |---|---|---|
 | Startseite | `/` | Ablauf, echter Verlust nach Steuer, Preisrechner, FAQ |
 | Registrierung | `/registrieren` | Shop-Creator-Check → TikTok-Username (Spalte B) → Grenzsteuersatz (Spalte C) → Creator-Key + „Mit Telegram verbinden“ |
-| Dashboard | `/dashboard` | Login, Telegram verbinden (Creator-Key), Steuersatz ändern, Samples, optionaler Upload im Browser |
+| Dashboard: Samples | `/dashboard` | Samples verwalten: Filter, Suche, Preisstufe ändern, als verkauft markieren, Upload im Browser |
+| Dashboard: Steuer | `/dashboard/steuer` | Jahresübersicht (Warenwert, Erlöse, echter Verlust, Rechnungen), CSV-Export, Hinweise |
+| | `/dashboard/steuer/rechnungen` | Rechnungen erstellen (fortlaufende Nummer, § 19 UStG oder 19 %/7 % USt), Drucken bzw. PDF |
+| | `/dashboard/steuer/daten` | Grenzsteuersatz und Rechnungsdaten (Absender, Steuernummer, Kleinunternehmer) |
+| Dashboard: Konto | `/dashboard/konto` | Telegram verbinden, Creator-Key, Abmelden |
 | Telegram-Bot | `bot/` | Login mit Web-App-Zugangsdaten, Upload: TikTok-Shop-Link → Einkaufspreis → Preisstufe. Siehe [bot/README.md](bot/README.md) |
 | Backend | `backend/Code.gs` | Google Apps Script als API zum Google Sheet |
 
@@ -87,13 +91,15 @@ Im Schaufenster erscheinen alle Zeilen, deren Spalte H einen gültigen Preis ent
 1. Google Sheet öffnen → **Erweiterungen → Apps Script**.
 2. Den Inhalt von `backend/Code.gs` komplett einfügen und speichern.
 3. Oben die Funktion **`setup`** auswählen → **Ausführen** → Berechtigungen bestätigen.
-   Das legt das Blatt `Creators` und fehlende Spaltenköpfe (J–Q) an.
+   Das legt die Blätter `Creators` und `Rechnungen` sowie fehlende Spaltenköpfe an.
 4. **Bereitstellen → Neue Bereitstellung → Typ: Web-App**
    - Ausführen als: **Ich**
    - Zugriff: **Jeder**
 5. Die **Web-App-URL** kopieren (endet auf `/exec`).
 
-> Nach jeder Änderung an `Code.gs`: **Bereitstellen → Bereitstellungen verwalten → Bearbeiten → Neue Version**. Sonst bleibt die alte Version aktiv.
+> Nach jeder Änderung an `Code.gs`: Code einfügen, **`setup` einmal ausführen**, dann **Bereitstellen → Bereitstellungen verwalten → Bearbeiten (Stift) → Version: Neue Version → Bereitstellen**. So bleibt die URL gleich. Eine *neue* Bereitstellung würde eine neue URL erzeugen.
+>
+> Rechnungen werden nie gelöscht (Aufbewahrungspflicht). Rechnungsdaten der Creator stehen als JSON in `Creators`, Spalte F.
 
 ### 2. Web-App mit dem Backend verbinden
 

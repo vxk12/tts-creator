@@ -90,3 +90,37 @@ details > summary::-webkit-details-marker {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Rechnung drucken bzw. als PDF speichern: nur das Rechnungs-Papier */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+  html,
+  body {
+    overflow: visible !important;
+    height: auto !important;
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  .print-doc,
+  .print-doc * {
+    visibility: visible !important;
+  }
+  .print-overlay {
+    position: static !important;
+    overflow: visible !important;
+    background: none !important;
+    backdrop-filter: none !important;
+  }
+  .print-doc {
+    position: absolute;
+    inset: 0 0 auto 0;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}

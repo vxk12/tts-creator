@@ -10,6 +10,7 @@
 const CONFIG = {
   PRODUCTS_SHEET: 'Tabellenblatt1',
   CREATORS_SHEET: 'Creators',
+  INVOICES_SHEET: 'Rechnungen',
   // Formel für Spalte H (Verkaufspreis) = Einkaufspreis (F) × Preisfaktor der gewählten Stufe (N).
   // {r} wird durch die Zeilennummer ersetzt.
   PRICE_FORMULA: '=IF(OR(F{r}="",N{r}=""),"",ROUND(F{r}*N{r},2))',
@@ -21,20 +22,30 @@ const CONFIG = {
   },
   CATEGORIES: ['Tech', 'Beauty', 'Haushalt', 'Sonstiges'],
   THUMB_CACHE_SECONDS: 21600, // 6 Stunden
+  VAT_RATES: [0, 0.07, 0.19],
+  SALE_STATUS: { verfuegbar: 'Verfügbar', verkauft: 'Verkauft' },
 };
 
 // Spalten im Produkt-Blatt (1-basiert)
 const P = {
   ID: 1, USER: 2, STATUS: 3, NAME: 4, SHOP: 5, PRICE: 6, VIDEO: 7, SALE: 8, TAX: 9, CAT: 10, CREATED: 11, DESC: 12,
-  TIER: 13, FACTOR: 14, SOURCE: 15, IMAGE: 16, SHOP_PRICE: 17,
+  TIER: 13, FACTOR: 14, SOURCE: 15, IMAGE: 16, SHOP_PRICE: 17, SALE_STATUS: 18, SOLD_AT: 19, SOLD_PRICE: 20,
 };
 const P_HEADERS = ['Produkt_ID', 'User_ID', 'Status_Code', 'Produkt_Name', 'TTS_Shop_Link', 'Einkaufspreis',
   'TikTok_Video_Link', 'Empfohlener_Verkaufspreis', 'Tax_Rate', 'Kategorie', 'Erstellt_Am', 'Beschreibung',
-  'Preisstufe', 'Preisfaktor', 'Quelle', 'Bild_URL', 'Shop_Preis'];
+  'Preisstufe', 'Preisfaktor', 'Quelle', 'Bild_URL', 'Shop_Preis', 'Verkaufsstatus', 'Verkauft_Am', 'Verkauft_Fuer'];
 
 // Spalten im Creator-Blatt (1-basiert) – B = User_ID, C = Status_Code wie in der Spezifikation
-const C = { CREATED: 1, USER: 2, STATUS: 3, TELEGRAM: 4, KEY_HASH: 5 };
-const C_HEADERS = ['Registriert_Am', 'User_ID', 'Status_Code', 'Telegram_Username', 'Creator_Key_Hash'];
+const C = { CREATED: 1, USER: 2, STATUS: 3, TELEGRAM: 4, KEY_HASH: 5, PROFILE: 6 };
+const C_HEADERS = ['Registriert_Am', 'User_ID', 'Status_Code', 'Telegram_Username', 'Creator_Key_Hash', 'Rechnungsdaten'];
+
+// Spalten im Rechnungs-Blatt (1-basiert). Rechnungen werden nie gelöscht (Aufbewahrungspflicht).
+const I = {
+  ID: 1, USER: 2, NUMBER: 3, DATE: 4, SERVICE_DATE: 5, RECIPIENT: 6, ITEMS: 7, NET: 8, VAT_RATE: 9, VAT: 10,
+  GROSS: 11, SMALL_BUSINESS: 12, SENDER: 13, CREATED: 14, SAMPLE_IDS: 15,
+};
+const I_HEADERS = ['Rechnungs_ID', 'User_ID', 'Rechnungsnummer', 'Rechnungsdatum', 'Leistungsdatum', 'Empfaenger',
+  'Positionen', 'Netto', 'USt_Satz', 'USt', 'Brutto', 'Kleinunternehmer', 'Absender', 'Erstellt_Am', 'Sample_IDs'];
 
 /* ------------------------------------------------------------------ */
 /* HTTP-Einstiegspunkte                                                */
@@ -64,6 +75,10 @@ function doPost(e) {
       case 'addProduct': return json_(addProduct_(body));
       case 'updateProfile': return json_(updateProfile_(body));
       case 'updateStatus': return json_(updateStatus_(body));
+      case 'updateSample': return json_(updateSample_(body));
+      case 'updateTaxProfile': return json_(updateTaxProfile_(body));
+      case 'listInvoices': return json_(listInvoices_(body));
+      case 'createInvoice': return json_(createInvoice_(body));
       default: return json_({ ok: false, error: 'Unbekannte Aktion.' });
     }
   } catch (err) {
@@ -102,7 +117,7 @@ function register_(body) {
 
 function login_(body) {
   const creator = auth_(body);
-  return { ok: true, creator: publicCreator_(creator) };
+  return { ok: true, creator: publicCreator_(creator), taxProfile: creator.taxProfile };
 }
 
 function addProduct_(body) {
@@ -186,6 +201,134 @@ function updateStatus_(body) {
   return { ok: true, creator: publicCreator_(creator) };
 }
 
+/** Sample verwalten: Preisstufe ändern oder als verkauft / wieder verfügbar markieren. Nur eigene Samples. */
+function updateSample_(body) {
+  const creator = auth_(body);
+  const id = String(body.id || '');
+  return withLock_(() => {
+    const sheet = productsSheet_();
+    const row = findProductRow_(sheet, id, creator.userId);
+    if (body.tier !== undefined) {
+      const tier = CONFIG.TIERS[String(body.tier)];
+      if (!tier) throw new Error('Bitte wähle eine Preisstufe (Fair, Schnell oder Sofort weg).');
+      sheet.getRange(row, P.TIER, 1, 2).setValues([[tier.label, tier.factor]]);
+    }
+    if (body.status === 'verkauft') {
+      SpreadsheetApp.flush();
+      const fallback = sheet.getRange(row, P.SALE).getValue();
+      const soldPrice = body.soldPrice === undefined || body.soldPrice === '' ? fallback : parseMoney_(body.soldPrice, 'Verkaufspreis');
+      sheet.getRange(row, P.SOLD_AT).setNumberFormat('@');
+      sheet.getRange(row, P.SALE_STATUS, 1, 3)
+        .setValues([[CONFIG.SALE_STATUS.verkauft, parseDate_(body.soldAt || today_(), 'Verkaufsdatum'), soldPrice]]);
+    } else if (body.status === 'verfuegbar') {
+      sheet.getRange(row, P.SALE_STATUS, 1, 3).setValues([[CONFIG.SALE_STATUS.verfuegbar, '', '']]);
+    }
+    SpreadsheetApp.flush();
+    const r = sheet.getRange(row, 1, 1, P_HEADERS.length).getValues()[0];
+    return {
+      ok: true,
+      sample: {
+        id: id, tier: String(r[P.TIER - 1] || ''),
+        price: typeof r[P.SALE - 1] === 'number' ? r[P.SALE - 1] : null,
+        status: r[P.SALE_STATUS - 1] === CONFIG.SALE_STATUS.verkauft ? 'verkauft' : 'verfuegbar',
+        soldAt: dateText_(r[P.SOLD_AT - 1]),
+        soldPrice: typeof r[P.SOLD_PRICE - 1] === 'number' ? r[P.SOLD_PRICE - 1] : null,
+      },
+    };
+  });
+}
+
+/** Rechnungsdaten (Absender auf Rechnungen) speichern. */
+function updateTaxProfile_(body) {
+  const creator = auth_(body);
+  const p = body.taxProfile || {};
+  const text = (v, label, max, required) => {
+    const s = String(v || '').trim();
+    if (required && !s) throw new Error('Bitte fülle aus: ' + label + '.');
+    if (s.length > max) throw new Error(label + ' ist zu lang.');
+    return s;
+  };
+  const profile = {
+    name: text(p.name, 'Name', 120, true),
+    street: text(p.street, 'Straße und Hausnummer', 120, true),
+    zip: text(p.zip, 'PLZ', 10, true),
+    city: text(p.city, 'Ort', 80, true),
+    email: text(p.email, 'E-Mail', 120, false),
+    taxNumber: text(p.taxNumber, 'Steuernummer', 30, false),
+    vatId: text(p.vatId, 'USt-IdNr.', 20, false),
+    iban: text(p.iban, 'IBAN', 34, false).replace(/\s+/g, ''),
+    smallBusiness: p.smallBusiness === true,
+  };
+  if (!profile.taxNumber && !profile.vatId) throw new Error('Bitte gib deine Steuernummer oder USt-IdNr. an (Pflicht auf Rechnungen).');
+  creatorsSheet_().getRange(creator.row, C.PROFILE).setValue(JSON.stringify(profile));
+  return { ok: true, taxProfile: profile };
+}
+
+function listInvoices_(body) {
+  const creator = auth_(body);
+  return { ok: true, invoices: invoicesOf_(creator.userId).reverse() };
+}
+
+/** Rechnung anlegen. Nummer fortlaufend pro Creator und Jahr (2026-001), Beträge werden hier in Cent berechnet. */
+function createInvoice_(body) {
+  const creator = auth_(body);
+  const sender = creator.taxProfile;
+  if (!sender || !sender.name || !(sender.taxNumber || sender.vatId)) {
+    throw new Error('Bitte hinterlege zuerst deine Rechnungsdaten (Steuer → Steuerdaten).');
+  }
+  const r = body.recipient || {};
+  const recipient = {
+    name: String(r.name || '').trim().slice(0, 120),
+    street: String(r.street || '').trim().slice(0, 120),
+    zip: String(r.zip || '').trim().slice(0, 10),
+    city: String(r.city || '').trim().slice(0, 80),
+  };
+  if (!recipient.name || !recipient.street || !recipient.zip || !recipient.city) {
+    throw new Error('Bitte gib Name und vollständige Anschrift des Empfängers an.');
+  }
+  const date = parseDate_(body.date, 'Rechnungsdatum');
+  const serviceDate = parseDate_(body.serviceDate || body.date, 'Leistungsdatum');
+  const rawItems = Array.isArray(body.items) ? body.items : [];
+  if (!rawItems.length || rawItems.length > 30) throw new Error('Bitte gib 1 bis 30 Positionen an.');
+  const items = rawItems.map((it, i) => {
+    const description = String(it.description || '').trim().slice(0, 200);
+    if (!description) throw new Error('Position ' + (i + 1) + ': Bitte beschreibe die Leistung.');
+    const qty = Number(it.qty);
+    if (!(qty >= 1 && qty <= 999 && Math.floor(qty) === qty)) throw new Error('Position ' + (i + 1) + ': Menge 1 bis 999.');
+    const unitCents = Math.round(parseMoney_(it.unitPrice, 'Einzelpreis') * 100);
+    return { description: description, qty: qty, unitPrice: unitCents / 100, total: (qty * unitCents) / 100 };
+  });
+  const vatRate = sender.smallBusiness ? 0 : Number(body.vatRate);
+  if (CONFIG.VAT_RATES.indexOf(vatRate) < 0) throw new Error('Ungültiger Umsatzsteuersatz.');
+  const netCents = items.reduce((sum, it) => sum + Math.round(it.total * 100), 0);
+  const vatCents = Math.round(netCents * vatRate);
+  const sampleIds = (Array.isArray(body.sampleIds) ? body.sampleIds : []).map(String).slice(0, 30);
+
+  return withLock_(() => {
+    const sheet = invoicesSheet_();
+    const year = date.slice(0, 4);
+    const count = invoicesOf_(creator.userId).filter((inv) => inv.number.slice(0, 4) === year).length;
+    const invoice = {
+      id: Utilities.getUuid(),
+      number: year + '-' + ('00' + (count + 1)).slice(-3),
+      date: date, serviceDate: serviceDate, recipient: recipient, items: items,
+      net: netCents / 100, vatRate: vatRate, vat: vatCents / 100, gross: (netCents + vatCents) / 100,
+      smallBusiness: sender.smallBusiness === true, sender: sender, sampleIds: sampleIds,
+      createdAt: new Date().toISOString(),
+    };
+    const row = sheet.getLastRow() + 1;
+    sheet.getRange(row, 1, 1, I_HEADERS.length).setNumberFormat('@');
+    sheet.getRange(row, I.NET, 1, 4).setNumberFormat('0.00');
+    sheet.getRange(row, I.GROSS).setNumberFormat('0.00');
+    sheet.getRange(row, 1, 1, I_HEADERS.length).setValues([[
+      invoice.id, creator.userId, invoice.number, date, serviceDate, JSON.stringify(recipient), JSON.stringify(items),
+      invoice.net, vatRate, invoice.vat, invoice.gross, invoice.smallBusiness ? 'JA' : 'NEIN', JSON.stringify(sender),
+      invoice.createdAt, sampleIds.join(','),
+    ]]);
+    return { ok: true, invoice: invoice };
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /* Schaufenster                                                        */
 /* ------------------------------------------------------------------ */
@@ -222,6 +365,9 @@ function listProducts_() {
       videoLink: String(r[P.VIDEO - 1] || '').trim(),
       category: CONFIG.CATEGORIES.indexOf(r[P.CAT - 1]) >= 0 ? r[P.CAT - 1] : 'Sonstiges',
       createdAt: r[P.CREATED - 1] instanceof Date ? r[P.CREATED - 1].toISOString() : null,
+      status: r[P.SALE_STATUS - 1] === CONFIG.SALE_STATUS.verkauft ? 'verkauft' : 'verfuegbar',
+      soldAt: dateText_(r[P.SOLD_AT - 1]),
+      soldPrice: typeof r[P.SOLD_PRICE - 1] === 'number' ? r[P.SOLD_PRICE - 1] : null,
       telegram: telegramByUser[userId.toLowerCase()] || '',
     });
   });
@@ -311,6 +457,7 @@ function creatorsData_() {
       statusCode: Number(r[C.STATUS - 1]) || 0,
       telegram: String(r[C.TELEGRAM - 1] || '').trim(),
       keyHash: String(r[C.KEY_HASH - 1] || ''),
+      taxProfile: parseJson_(r[C.PROFILE - 1], null),
     }))
     .filter((c) => c.userId);
 }
@@ -337,6 +484,48 @@ function ensureSheets_() {
     creators.getRange('B:B').setNumberFormat('@');
     creators.setFrozenRows(1);
   }
+  const cHead = creators.getRange(1, 1, 1, C_HEADERS.length).getValues()[0];
+  C_HEADERS.forEach((h, i) => { if (!String(cHead[i]).trim()) creators.getRange(1, i + 1).setValue(h); });
+
+  if (!ss.getSheetByName(CONFIG.INVOICES_SHEET)) {
+    const inv = ss.insertSheet(CONFIG.INVOICES_SHEET);
+    inv.getRange(1, 1, 1, I_HEADERS.length).setValues([I_HEADERS]).setFontWeight('bold');
+    inv.setFrozenRows(1);
+  }
+}
+
+function invoicesSheet_() {
+  const s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.INVOICES_SHEET);
+  if (!s) { ensureSheets_(); return invoicesSheet_(); }
+  return s;
+}
+
+function invoicesOf_(userId) {
+  const sheet = invoicesSheet_();
+  const last = sheet.getLastRow();
+  if (last < 2) return [];
+  const needle = userId.toLowerCase();
+  return sheet.getRange(2, 1, last - 1, I_HEADERS.length).getValues()
+    .filter((r) => String(r[I.USER - 1]).toLowerCase() === needle)
+    .map((r) => ({
+      id: String(r[I.ID - 1]), number: String(r[I.NUMBER - 1]),
+      date: dateText_(r[I.DATE - 1]), serviceDate: dateText_(r[I.SERVICE_DATE - 1]),
+      recipient: parseJson_(r[I.RECIPIENT - 1], {}), items: parseJson_(r[I.ITEMS - 1], []),
+      net: Number(r[I.NET - 1]) || 0, vatRate: Number(r[I.VAT_RATE - 1]) || 0, vat: Number(r[I.VAT - 1]) || 0,
+      gross: Number(r[I.GROSS - 1]) || 0, smallBusiness: r[I.SMALL_BUSINESS - 1] === 'JA',
+      sender: parseJson_(r[I.SENDER - 1], {}), createdAt: String(r[I.CREATED - 1]),
+      sampleIds: String(r[I.SAMPLE_IDS - 1] || '').split(',').filter(String),
+    }));
+}
+
+function findProductRow_(sheet, id, userId) {
+  const last = sheet.getLastRow();
+  if (!id || last < 2) throw new Error('Sample nicht gefunden.');
+  const rows = sheet.getRange(2, P.ID, last - 1, 2).getValues();
+  for (let i = 0; i < rows.length; i++) {
+    if (String(rows[i][0]) === id && String(rows[i][1]).toLowerCase() === userId.toLowerCase()) return i + 2;
+  }
+  throw new Error('Sample nicht gefunden.');
 }
 
 function productsSheet_() {
@@ -349,6 +538,32 @@ function creatorsSheet_() {
   const s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.CREATORS_SHEET);
   if (!s) { ensureSheets_(); return creatorsSheet_(); }
   return s;
+}
+
+function parseMoney_(v, label) {
+  const n = Number(String(v === undefined ? '' : v).replace(',', '.'));
+  if (!isFinite(n) || n < 0 || n > 100000) throw new Error('Bitte gib ' + label + ' als Zahl ein (z. B. 27.90).');
+  return Math.round(n * 100) / 100;
+}
+
+/** Datum als Text yyyy-mm-dd (bleibt so in der Tabelle, keine Zeitzonen-Verschiebung). */
+function parseDate_(v, label) {
+  const s = String(v || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || isNaN(new Date(s + 'T00:00:00Z'))) throw new Error('Ungültiges ' + label + '.');
+  return s;
+}
+
+function dateText_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return String(v || '');
+}
+
+function today_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+function parseJson_(v, fallback) {
+  try { return v ? JSON.parse(String(v)) : fallback; } catch (_) { return fallback; }
 }
 
 function normalizeUser_(v) {
