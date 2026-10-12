@@ -8,9 +8,9 @@ export function Steps() {
   return (
     <section id="ablauf" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 md:py-28 lg:px-8">
       <Reveal className="max-w-2xl">
-        <h2 className="text-4xl font-semibold tracking-tight md:text-5xl">Von der Anmeldung zum Inserat</h2>
+        <h2 className="text-4xl font-semibold tracking-tight md:text-5xl">In drei Schritten online</h2>
         <p className="mt-5 max-w-[60ch] text-lg leading-relaxed text-fg-muted">
-          Die Web-App kennt dein Konto und deinen Steuersatz. Der Telegram-Bot nimmt deine Samples entgegen.
+          Einmal registrieren und Telegram verbinden. Danach ist jedes Sample in Sekunden hochgeladen.
         </p>
       </Reveal>
 
@@ -30,7 +30,7 @@ export function Steps() {
               <UserPlus size={28} weight="regular" className="text-neon" aria-hidden="true" />
               <h3 className="mt-4 text-2xl font-semibold tracking-tight">Registrieren</h3>
               <p className="mt-2 max-w-md leading-relaxed text-fg-muted">
-                Kurzer Check als TikTok Shop Creator, dein TikTok-Username und dein Steuersatz. Einmalig in der Web-App.
+                Kurzer Check als TikTok Shop Creator und dein TikTok-Username. Einmalig in der Web-App.
               </p>
             </div>
           </article>
@@ -55,7 +55,7 @@ export function Steps() {
               <div>
                 <h3 className="text-2xl font-semibold tracking-tight">Sample hochladen</h3>
                 <p className="mt-2 leading-relaxed text-fg-muted">
-                  TikTok-Shop-Link schicken, Einkaufspreis eingeben, Preisstufe wählen. Das Sample landet in deiner Web-App.
+                  TikTok-Shop-Link schicken, Einkaufspreis eingeben, Preisstufe wählen. Oder alles direkt im Dashboard.
                 </p>
               </div>
             </div>

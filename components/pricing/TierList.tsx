@@ -1,8 +1,8 @@
 "use client";
 
-import { TIERS, fmtEUR, offer, type TierId } from "@/lib/pricing";
+import { TIERS, fmtEUR, offer, tierPrice, type TierId } from "@/lib/pricing";
 
-/** Drei Preisstufen als Auswahl-Zeilen mit Preis und dem, was nach Steuer zurückkommt. */
+/** Drei Preisstufen als Auswahl-Zeilen mit Preis; mit Steuersatz zusätzlich, was später über die Steuer kommt. */
 export function TierList({
   purchase,
   rate,
@@ -16,11 +16,11 @@ export function TierList({
   onChange: (id: TierId) => void;
   name?: string;
 }) {
-  const ready = purchase != null && rate != null;
   return (
     <div role="radiogroup" aria-label="Preisstufe" className="grid gap-2">
       {TIERS.map((t) => {
-        const o = ready ? offer(purchase, t.id, rate) : null;
+        const price = purchase != null ? tierPrice(purchase, t.id) : null;
+        const o = purchase != null && rate != null ? offer(purchase, t.id, rate) : null;
         const selected = value === t.id;
         return (
           <button
@@ -49,9 +49,9 @@ export function TierList({
             </span>
             <span className="text-right">
               <span className={`block text-xl font-semibold tracking-tight tabular sm:text-2xl ${selected ? "text-fg" : "text-fg/90"}`}>
-                {o ? fmtEUR(o.price) : "-"}
+                {price != null ? fmtEUR(price) : "-"}
               </span>
-              <span className="block text-xs text-fg-muted tabular">{o ? `Zurück ${fmtEUR(o.back)}` : " "}</span>
+              <span className="block text-xs text-fg-muted tabular">{o && o.taxSaving > 0 ? `+ ${fmtEUR(o.taxSaving)} über Steuer` : " "}</span>
             </span>
           </button>
         );

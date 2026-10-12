@@ -28,19 +28,19 @@ export function Hero() {
             Für TikTok Shop Creator
           </motion.p>
           <motion.h1 {...item(1)} className="mt-4 text-5xl font-semibold leading-[1.02] tracking-tighter sm:text-6xl lg:text-7xl">
-            Aus Samples
+            Samples in
             <br />
-            wird Geld.
+            Sekunden online.
           </motion.h1>
           <motion.p {...item(2)} className="mt-6 max-w-[34rem] text-lg leading-relaxed text-fg-muted">
-            Registrieren, Telegram verbinden, Link schicken. Du bekommst drei Preisvorschläge und siehst, was nach Steuer bei dir ankommt.
+            TikTok-Shop-Link an den Telegram-Bot schicken, Preis wählen, fertig. Oder direkt auf der Website hochladen.
           </motion.p>
           <motion.div {...item(3)} className="mt-9 flex flex-wrap gap-3">
             <ButtonLink href="/registrieren" size="lg">
               Registrieren
             </ButtonLink>
-            <ButtonLink href="/#rechner" variant="secondary" size="lg">
-              Preis berechnen
+            <ButtonLink href="/#ablauf" variant="secondary" size="lg">
+              So läuft&apos;s
             </ButtonLink>
           </motion.div>
         </div>

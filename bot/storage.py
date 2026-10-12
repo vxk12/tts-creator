@@ -13,7 +13,11 @@ class Session:
     telegram_id: int
     user_id: str
     creator_key: str
-    status_code: Decimal
+    status_code: Decimal | None  # None = nicht festgelegt (in SQLite als leerer Text)
+
+
+def _text(status_code: Decimal | None) -> str:
+    return "" if status_code is None else str(status_code)
 
 
 class SessionStore:
@@ -36,22 +40,22 @@ class SessionStore:
             "SELECT telegram_id, user_id, creator_key, status_code FROM sessions WHERE telegram_id = ?",
             (telegram_id,),
         ).fetchone()
-        return Session(row[0], row[1], row[2], Decimal(row[3])) if row else None
+        return Session(row[0], row[1], row[2], Decimal(row[3]) if row[3] else None) if row else None
 
-    def save(self, telegram_id: int, user_id: str, creator_key: str, status_code: Decimal) -> Session:
+    def save(self, telegram_id: int, user_id: str, creator_key: str, status_code: Decimal | None) -> Session:
         self.db.execute(
             """INSERT INTO sessions (telegram_id, user_id, creator_key, status_code, linked_at)
                VALUES (?, ?, ?, ?, ?)
                ON CONFLICT(telegram_id) DO UPDATE SET
                  user_id = excluded.user_id, creator_key = excluded.creator_key,
                  status_code = excluded.status_code, linked_at = excluded.linked_at""",
-            (telegram_id, user_id, creator_key, str(status_code), datetime.now(timezone.utc).isoformat()),
+            (telegram_id, user_id, creator_key, _text(status_code), datetime.now(timezone.utc).isoformat()),
         )
         self.db.commit()
         return Session(telegram_id, user_id, creator_key, status_code)
 
-    def update_status(self, telegram_id: int, status_code: Decimal) -> None:
-        self.db.execute("UPDATE sessions SET status_code = ? WHERE telegram_id = ?", (str(status_code), telegram_id))
+    def update_status(self, telegram_id: int, status_code: Decimal | None) -> None:
+        self.db.execute("UPDATE sessions SET status_code = ? WHERE telegram_id = ?", (_text(status_code), telegram_id))
         self.db.commit()
 
     def delete(self, telegram_id: int) -> None:

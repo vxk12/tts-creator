@@ -129,7 +129,7 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
 
         out = await self.text("27")
         tiers = out[0]
-        for snippet in ["18,90 €", "21,33 € (79 %)", "14,85 €", "18,49 € (68 %)", "10,80 €", "15,66 € (58 %)", "30 %"]:
+        for snippet in ["18,90 €", "+ 2,43 € später", "14,85 €", "+ 3,64 €", "10,80 €", "+ 4,86 €", "Steuererklärung"]:
             self.assertIn(snippet, tiers)
 
         out = await self.tap("tier:fair")
@@ -236,6 +236,16 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Abgebrochen", out[-1])
         out = await self.text("demo")                       # kein Login-Schritt mehr aktiv
         self.assertIn("/start", out[0])
+
+    async def test_without_tax_rate_only_prices(self):
+        data = json.loads(self.demo_file.read_text())
+        data["creators"]["demo"]["statusCode"] = None           # Steuersatz optional, nicht festgelegt
+        self.demo_file.write_text(json.dumps(data))
+        await self.login_demo()
+        await self.text("https://vm.tiktok.com/ZG9A86bGdeaah-ro48Q/")
+        out = " ".join(await self.text("27"))
+        self.assertIn("18,90 €", out)
+        self.assertNotIn("Steuer", out)
 
     async def test_upload_requires_login(self):
         out = await self.text("https://vm.tiktok.com/abc/")

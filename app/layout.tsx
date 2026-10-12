@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "TTS Deals für Creator", template: "%s | TTS Deals" },
   description:
-    "Für TikTok Shop Creator: Samples per Telegram hochladen, drei Preisvorschläge bekommen und sehen, was nach Steuer zurückkommt.",
+    "Für TikTok Shop Creator: Samples in Sekunden per Telegram oder Website hochladen und zum fairen Preis verkaufen.",
   icons: { icon: "/img/favicon.svg" },
 };
 

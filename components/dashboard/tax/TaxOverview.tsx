@@ -6,7 +6,7 @@ import { DownloadSimple, FilePlus, IdentificationCard } from "@phosphor-icons/re
 import { Button, buttonClass } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { listInvoices, type Invoice } from "@/lib/api";
-import { fmtEUR, fmtPct, payback } from "@/lib/pricing";
+import { fmtEUR, fmtPct, taxBack } from "@/lib/pricing";
 import { downloadCsv, fmtDate } from "@/lib/invoice";
 import { useDashboard } from "../DashboardShell";
 import { PageHead } from "../ui";
@@ -47,20 +47,21 @@ export function TaxOverview() {
 
   const value = sum(received.map((s) => s.purchasePrice ?? 0));
   const revenue = sum(sold.map((s) => s.soldPrice ?? s.price));
-  const back = sum(sold.map((s) => payback(s.purchasePrice ?? 0, s.soldPrice ?? s.price, creator.statusCode)));
+  const rate = creator.statusCode;
+  const viaTax = rate == null ? null : sum(sold.map((s) => taxBack(s.purchasePrice ?? 0, s.soldPrice ?? s.price, rate)));
   const invGross = sum(yearInvoices.map((i) => i.gross));
   const invVat = sum(yearInvoices.map((i) => i.vat));
 
   function exportSamples() {
     downloadCsv(`Samples ${year}.csv`,
-      ["Name", "Hochgeladen am", "Einkaufspreis", "Preisstufe", "Status", "Verkauft am", "Verkaufspreis", "Zurück nach Steuer"],
+      ["Name", "Hochgeladen am", "Einkaufspreis", "Preisstufe", "Status", "Verkauft am", "Verkaufspreis", "Über die Steuer (geschätzt)"],
       (samples ?? []).filter((s) => inYear(s.createdAt) || inYear(s.soldAt)).map((s) => {
         const isSold = s.status === "verkauft";
         const sale = s.soldPrice ?? s.price;
         return [
           s.name || "TikTok Shop Produkt", s.createdAt ? fmtDate(s.createdAt.slice(0, 10)) : "", s.purchasePrice ?? 0, s.tier,
           isSold ? "Verkauft" : "Verfügbar", isSold && s.soldAt ? fmtDate(s.soldAt) : "", isSold ? sale : "",
-          isSold ? payback(s.purchasePrice ?? 0, sale, creator.statusCode) : "",
+          isSold && rate != null ? taxBack(s.purchasePrice ?? 0, sale, rate) : "",
         ];
       }));
   }
@@ -74,7 +75,7 @@ export function TaxOverview() {
   const tiles = [
     { k: "Samples erhalten", v: fmtEUR(value), sub: `${n(received.length, "Sample", "Samples")}, Warenwert` },
     { k: "Verkaufserlöse", v: fmtEUR(revenue), sub: `${sold.length} verkauft` },
-    { k: "Zurück nach Steuer", v: fmtEUR(back), sub: `Erlöse plus Steuervorteil bei ${fmtPct(creator.statusCode)}`, accent: true },
+    { k: "Über die Steuer", v: viaTax == null ? "-" : `+ ${fmtEUR(viaTax)}`, sub: rate == null ? "Steuersatz fehlt (unter Steuerdaten)" : `kommt mit der Steuererklärung, bei ${fmtPct(rate)}`, accent: true },
     { k: "Rechnungen", v: fmtEUR(invGross), sub: invoices ? `${n(yearInvoices.length, "Rechnung", "Rechnungen")}, davon USt ${fmtEUR(invVat)}` : "wird geladen" },
   ];
 

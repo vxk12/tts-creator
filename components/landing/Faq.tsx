@@ -4,16 +4,20 @@ import { Reveal } from "@/components/ui/Reveal";
 const QA = [
   { q: "Wer kann mitmachen?", a: "Nur offizielle TikTok Shop Creator. Ohne Shop-Creator-Status ist keine Registrierung möglich." },
   {
-    q: "Warum brauche ich meinen Steuersatz?",
-    a: "Ein Verkauf unter Einkaufspreis mindert deine Steuer. Mit deinem Steuersatz zeigen wir dir, wie viel du nach Steuer wirklich zurückbekommst.",
+    q: "Wie lade ich Samples hoch?",
+    a: "Über unseren Telegram-Bot: TikTok-Shop-Link schicken, Einkaufspreis eingeben, Preisstufe wählen. Im Bot meldest du dich einmalig mit Username und Creator-Key an. Alternativ lädst du direkt im Dashboard hoch.",
+  },
+  {
+    q: "Muss ich meinen Steuersatz angeben?",
+    a: "Nein, das ist optional. Mit Steuersatz zeigen wir dir zusätzlich, was später über die Steuererklärung dazukommt. Eintragen kannst du ihn jederzeit im Dashboard.",
+  },
+  {
+    q: "Was, wenn ich keine Steuererklärung mache?",
+    a: "Dann bekommst du einfach den Verkaufspreis. Der Teil über die Steuer kommt nur mit der Steuererklärung. Wer mit TikTok Shop Geld verdient, muss in der Regel ohnehin eine abgeben.",
   },
   {
     q: "Was, wenn ich meinen Steuersatz nicht kenne?",
-    a: "Dann schätzen wir ihn über dein Jahreseinkommen. Das ist ein Näherungswert. Den genauen Satz findest du in deinem letzten Steuerbescheid und kannst ihn jederzeit im Dashboard ändern.",
-  },
-  {
-    q: "Wie lade ich Samples hoch?",
-    a: "Über unseren Telegram-Bot: TikTok-Shop-Link schicken, Einkaufspreis eingeben, Preisstufe wählen. Im Bot meldest du dich einmalig mit Username und Creator-Key an.",
+    a: "Dann schätzen wir ihn über dein Jahreseinkommen. Das ist ein Näherungswert. Den genauen Satz findest du in deinem letzten Steuerbescheid.",
   },
   {
     q: "Woher kommen Produktname und Bilder?",

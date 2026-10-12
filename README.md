@@ -1,14 +1,15 @@
 # TTS Creator-Plattform
 
-Web-App für TikTok Shop Creator: registrieren (inkl. Steuer-Onboarding), Telegram verbinden, Samples per Bot hochladen.
+Web-App für TikTok Shop Creator. Hauptfunktion: Samples in Sekunden per Telegram-Bot oder im Dashboard hochladen.
+Nebenfunktion (optional): mit Steuersatz zeigen, was später über die Steuer dazukommt, plus Steuer-Bereich mit Rechnungen.
 Gebaut mit **Next.js 16, Tailwind CSS v4, Motion, Geist** und Phosphor-Icons. Dark-Mode mit einem Akzent (Neon-Grün `#00FF66`).
 
 Der frühere statische Stand (Editorial-Design, Marktplatz) ist als Git-Tag `v1-editorial` gesichert.
 
 | Bereich | Route | Zweck |
 |---|---|---|
-| Startseite | `/` | Ablauf, was nach Steuer zurückkommt, Preisrechner, FAQ |
-| Registrierung | `/registrieren` | Shop-Creator-Check → TikTok-Username (Spalte B) → Grenzsteuersatz (Spalte C) → Creator-Key + „Mit Telegram verbinden“ |
+| Startseite | `/` | Upload-Ablauf, Steuer-Extra (Preisrechner), FAQ |
+| Registrierung | `/registrieren` | Shop-Creator-Check → TikTok-Username (Spalte B) → Grenzsteuersatz (Spalte C, optional: „Später festlegen“ lässt die Zelle leer) → Creator-Key + „Mit Telegram verbinden“ |
 | Dashboard: Samples | `/dashboard` | Samples verwalten: Filter, Suche, Preisstufe ändern, als verkauft markieren, Upload im Browser |
 | Dashboard: Steuer | `/dashboard/steuer` | Jahresübersicht (Warenwert, Erlöse, zurück nach Steuer, Rechnungen), CSV-Export, Hinweise |
 | | `/dashboard/steuer/rechnungen` | Rechnungen erstellen (fortlaufende Nummer, § 19 UStG oder 19 %/7 % USt), Drucken bzw. PDF |
@@ -30,11 +31,11 @@ npm test           # Preislogik inkl. Abgleich mit dem Bot (bot/pricing.py)
 
 ## Preisberechnung (vorläufig)
 
-**Steuersatz** (Status_Code, Spalte C): exakt in % oder geschätzt über das Einkommen (unter 12.300 € → 0.00, 15.000 bis 60.000 € → 0.30, über 66.000 € → 0.42). Jederzeit im Dashboard änderbar.
+**Steuersatz** (Status_Code, Spalte C, optional; leer = nicht festgelegt): exakt in % oder geschätzt über das Einkommen (unter 12.300 € → 0.00, 15.000 bis 60.000 € → 0.30, über 66.000 € → 0.42). Jederzeit im Dashboard änderbar.
 
 **Preisstufen:** Verkaufspreis = Einkaufspreis × Faktor (Fair 0,70 · Schnell 0,55 · Sofort weg 0,40)
 
-**Zurück nach Steuer** (wird überall angezeigt) = Verkaufspreis + Steuervorteil = Einkaufspreis − echter Verlust.
+Angezeigt wird (nur mit Steuersatz): **„18,90 € sofort vom Käufer + 2,43 € später mit der Steuererklärung“**, also Verkaufspreis + Steuervorteil = Einkaufspreis − echter Verlust.
 Echter Verlust = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz). Beispiel 27 € bei 30 %: Fair 18,90 € → Verlust 5,67 € → zurück 21,33 € (79 %).
 
 Die Logik steht an drei Stellen und muss gleich bleiben: `lib/pricing.ts`, `bot/pricing.py`, `backend/Code.gs` (CONFIG.TIERS + Formel in Spalte H). `npm test` prüft Website und Bot über 9.000 Fälle auf cent-genaue Gleichheit.

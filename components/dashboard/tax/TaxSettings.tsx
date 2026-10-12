@@ -5,9 +5,9 @@ import { Buildings, Storefront } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { ChoiceTile } from "@/components/ui/ChoiceTile";
 import { Notice } from "@/components/ui/Notice";
-import { RateSelector, rateError, rateFromState, stateFromRate, type RateState } from "@/components/pricing/RateSelector";
+import { RateSelector, emptyRate, rateError, rateFromState, stateFromRate, type RateState } from "@/components/pricing/RateSelector";
 import { updateStatus, updateTaxProfile, type TaxProfile } from "@/lib/api";
-import { fmtPct } from "@/lib/pricing";
+import { fmtRate } from "@/lib/pricing";
 import { useDashboard } from "../DashboardShell";
 import { PageHead, inputCls } from "../ui";
 
@@ -29,7 +29,7 @@ export function TaxSettings() {
 
 function RatePanel() {
   const { creds, creator, setCreator } = useDashboard();
-  const [state, setState] = useState<RateState>(() => stateFromRate(creator.statusCode));
+  const [state, setState] = useState<RateState>(() => (creator.statusCode == null ? emptyRate : stateFromRate(creator.statusCode)));
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState(false);
 
@@ -41,7 +41,7 @@ function RatePanel() {
     try {
       const res = await updateStatus(creds, rateFromState(state)!);
       setCreator(res.creator);
-      setMsg({ tone: "success", text: `Gespeichert: ${fmtPct(res.creator.statusCode)}. Der Bot übernimmt den neuen Steuersatz automatisch.` });
+      setMsg({ tone: "success", text: `Gespeichert: ${fmtRate(res.creator.statusCode)}. Der Bot übernimmt den neuen Steuersatz automatisch.` });
     } catch (ex) {
       setMsg({ tone: "error", text: (ex as Error).message });
     } finally {
@@ -53,7 +53,7 @@ function RatePanel() {
     <form onSubmit={save} noValidate aria-labelledby="rate-title" className="h-full rounded-card border border-white/[0.07] bg-ink-900 p-6 sm:p-8">
       <h2 id="rate-title" className="text-xl font-semibold tracking-tight">Grenzsteuersatz</h2>
       <p className="mt-2 leading-relaxed text-fg-muted">
-        Aktuell <span className="font-medium text-fg">{fmtPct(creator.statusCode)}</span>. Daraus berechnen Bot und Web-App, wie viel du nach Steuer zurückbekommst.
+        Aktuell <span className="font-medium text-fg">{fmtRate(creator.statusCode)}</span>. Optional: Damit zeigen Bot und Web-App, was später über die Steuer dazukommt.
       </p>
       <div className="mt-6">
         <RateSelector value={state} onChange={(s) => { setState(s); setMsg(null); }} idPrefix="dash" showQuestion={false} />

@@ -100,7 +100,8 @@ function register_(body) {
     throw new Error('Die Plattform ist nur für offizielle TikTok Shop Creator.');
   }
   const userId = normalizeUser_(body.userId);
-  const statusCode = parseRate_(body.statusCode);
+  // Steuersatz ist optional (null = noch nicht festgelegt, nicht dasselbe wie 0 %)
+  const statusCode = body.statusCode === null || body.statusCode === undefined || body.statusCode === '' ? null : parseRate_(body.statusCode);
 
   return withLock_(() => {
     const sheet = creatorsSheet_();
@@ -110,7 +111,7 @@ function register_(body) {
     const creatorKey = Utilities.getUuid().replace(/-/g, '');
     const row = sheet.getLastRow() + 1;
     sheet.getRange(row, 1, 1, C_HEADERS.length)
-      .setValues([[new Date(), userId, statusCode, '', hash_(creatorKey)]]);
+      .setValues([[new Date(), userId, statusCode === null ? '' : statusCode, '', hash_(creatorKey)]]);
     return { ok: true, creator: { userId: userId, statusCode: statusCode, telegram: '' }, creatorKey: creatorKey };
   });
 }
@@ -145,12 +146,12 @@ function addProduct_(body) {
     const values = new Array(P_HEADERS.length).fill('');
     values[P.ID - 1] = id;
     values[P.USER - 1] = creator.userId;          // hinterlegte User_ID
-    values[P.STATUS - 1] = creator.statusCode;    // hinterlegter Status_Code (Spalte C)
+    values[P.STATUS - 1] = creator.statusCode === null ? '' : creator.statusCode; // Status_Code (Spalte C)
     values[P.NAME - 1] = name;
     values[P.SHOP - 1] = shopLink;
     values[P.PRICE - 1] = Math.round(price * 100) / 100;
     values[P.VIDEO - 1] = videoLink;
-    values[P.TAX - 1] = creator.statusCode;       // Tax_Rate (Spalte I) – wird von der Formel in H genutzt
+    values[P.TAX - 1] = creator.statusCode === null ? '' : creator.statusCode;    // Tax_Rate (Spalte I)
     values[P.CAT - 1] = category;
     values[P.CREATED - 1] = new Date();
     values[P.DESC - 1] = description;
@@ -454,7 +455,7 @@ function creatorsData_() {
     .map((r, i) => ({
       row: i + 2,
       userId: String(r[C.USER - 1] || '').trim(),
-      statusCode: Number(r[C.STATUS - 1]) || 0,
+      statusCode: r[C.STATUS - 1] === '' ? null : Number(r[C.STATUS - 1]) || 0,
       telegram: String(r[C.TELEGRAM - 1] || '').trim(),
       keyHash: String(r[C.KEY_HASH - 1] || ''),
       taxProfile: parseJson_(r[C.PROFILE - 1], null),

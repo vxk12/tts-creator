@@ -12,7 +12,7 @@ import { Notice } from "@/components/ui/Notice";
 import { RateSelector, emptyRate, rateError, rateFromState, stateFromRate, type RateState } from "@/components/pricing/RateSelector";
 import { TaxBreakdown } from "@/components/pricing/TaxBreakdown";
 import { USER_RE, normalizeUser, register, session, telegramBotLink } from "@/lib/api";
-import { fmtPct } from "@/lib/pricing";
+import { fmtRate } from "@/lib/pricing";
 
 type Step = "creator" | "user" | "tax" | "denied" | "success";
 
@@ -34,7 +34,7 @@ export function Onboarding() {
   const [rate, setRate] = useState<RateState>(emptyRate);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ userId: string; statusCode: number; creatorKey: string } | null>(null);
+  const [result, setResult] = useState<{ userId: string; statusCode: number | null; creatorKey: string } | null>(null);
   const advance = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Vorbelegung aus dem Preisrechner (?rate=0.3)
@@ -72,14 +72,15 @@ export function Onboarding() {
     return true;
   }
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  // Steuersatz ist optional: „Später festlegen“ registriert ohne (null)
+  async function submit(e: FormEvent | null, skipRate = false) {
+    e?.preventDefault();
     if (step !== "tax") return;
     if (isCreator !== true) return go("creator");
     if (!checkUser()) return go("user");
-    const err = rateError(rate);
+    const err = skipRate ? "" : rate.knows === null ? "Wähle Ja oder Nein, oder tippe auf „Später festlegen“." : rateError(rate);
     if (err) return setError(err);
-    const statusCode = rateFromState(rate)!;
+    const statusCode = skipRate ? null : rateFromState(rate)!;
     setBusy(true);
     setError("");
     try {
@@ -212,7 +213,7 @@ export function Onboarding() {
 
             {step === "tax" && (
               <motion.section key="tax" {...slide}>
-                <Head title="Kennst du deinen exakten Grenzsteuersatz?" text="Damit zeigen wir dir zu jedem Sample, wie viel du nach Steuer zurückbekommst." />
+                <Head title="Kennst du deinen exakten Grenzsteuersatz?" text="Optional. Damit zeigen wir dir, was später über die Steuer dazukommt. Geht auch später im Dashboard." />
                 <div className="mt-10">
                   <RateSelector value={rate} onChange={(s) => { setRate(s); setError(""); }} idPrefix="ob" showQuestion={false} />
                 </div>
@@ -228,23 +229,27 @@ export function Onboarding() {
                       className="mt-8"
                     >
                       <TaxBreakdown rate={currentRate} />
+                      <div className="mt-4">
+                        <Notice>
+                          Die Einschätzung über dein Einkommen ist ein Näherungswert und nicht 100 % genau. Für das beste Ergebnis schau in deinem letzten Steuerbescheid nach. Du kannst deinen Steuersatz jederzeit im Dashboard ändern.
+                        </Notice>
+                      </div>
                     </motion.div>
                   ) : null}
                 </AnimatePresence>
-
-                <div className="mt-4">
-                  <Notice>
-                    Die Einschätzung über dein Einkommen ist ein Näherungswert und nicht 100 % genau. Für das beste Ergebnis schau in deinem letzten Steuerbescheid nach. Du kannst deinen Steuersatz jederzeit im Dashboard ändern.
-                  </Notice>
-                </div>
                 {error ? <div className="mt-4"><Notice tone="error">{error}</Notice></div> : null}
                 <Actions>
                   <Button type="button" variant="ghost" size="lg" onClick={() => go("user")}>
                     <ArrowLeft size={16} /> Zurück
                   </Button>
-                  <Button type="submit" size="lg" disabled={busy}>
-                    {busy ? "Wird gespeichert …" : "Konto erstellen"}
-                  </Button>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button type="button" variant="secondary" size="lg" disabled={busy} onClick={() => submit(null, true)}>
+                      Später festlegen
+                    </Button>
+                    <Button type="submit" size="lg" disabled={busy}>
+                      {busy ? "Wird gespeichert …" : "Konto erstellen"}
+                    </Button>
+                  </div>
                 </Actions>
               </motion.section>
             )}
@@ -264,7 +269,7 @@ export function Onboarding() {
                     </div>
                     <div>
                       <dt className="text-fg-muted">Steuersatz</dt>
-                      <dd className="mt-1 text-base font-medium tabular">{fmtPct(result.statusCode)}</dd>
+                      <dd className="mt-1 text-base font-medium tabular">{result.statusCode == null ? "Später festlegen" : fmtRate(result.statusCode)}</dd>
                     </div>
                   </dl>
                   <div className="mt-6 border-t border-white/[0.08] pt-5">

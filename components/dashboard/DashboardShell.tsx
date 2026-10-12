@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { motion, useReducedMotion } from "motion/react";
 import { Package, Receipt, SignOut, UserCircle, type Icon } from "@phosphor-icons/react";
 import { getSamples, login, session, type Creator, type Credentials, type Sample, type TaxProfile } from "@/lib/api";
-import { fmtPct } from "@/lib/pricing";
+import { fmtRate } from "@/lib/pricing";
 import { LoginForm } from "./LoginForm";
 
 interface DashboardState {
@@ -121,7 +121,7 @@ function Sidebar({ creator, onLogout }: { creator: Creator; onLogout: () => void
     <aside className="hidden lg:block">
       <div className="sticky top-24">
         <p className="truncate font-medium">@{creator.userId}</p>
-        <p className="mt-0.5 text-sm text-fg-subtle tabular">Steuersatz {fmtPct(creator.statusCode)}</p>
+        <p className="mt-0.5 text-sm text-fg-subtle tabular">Steuersatz {fmtRate(creator.statusCode)}</p>
 
         <nav aria-label="Dashboard" className="mt-8 grid gap-1">
           {NAV.map((item) => {

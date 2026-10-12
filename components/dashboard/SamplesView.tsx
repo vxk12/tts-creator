@@ -7,9 +7,8 @@ import { ArrowSquareOut, CaretDown, MagnifyingGlass, Package, Plus, Receipt, Tel
 import { Button, buttonClass } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { TierList } from "@/components/pricing/TierList";
-import { AnimatedEuro } from "@/components/pricing/AnimatedEuro";
 import { addSample, telegramBotLink, today, updateSample, type Sample, type SampleStatus } from "@/lib/api";
-import { TIERS, fmtEUR, offer, parseMoney, payback, type TierId } from "@/lib/pricing";
+import { TIERS, fmtEUR, parseMoney, taxBack, tierPrice, type TierId } from "@/lib/pricing";
 import { fmtDate } from "@/lib/invoice";
 import { useDashboard } from "./DashboardShell";
 import { PageHead, inputCls } from "./ui";
@@ -39,7 +38,8 @@ export function SamplesView() {
 
   const sold = (samples ?? []).filter((s) => statusOf(s) === "verkauft");
   const revenue = sold.reduce((sum, s) => sum + (s.soldPrice ?? s.price), 0);
-  const back = sold.reduce((sum, s) => sum + payback(s.purchasePrice ?? 0, s.soldPrice ?? s.price, creator.statusCode), 0);
+  const rate = creator.statusCode;
+  const viaTax = rate == null ? null : sold.reduce((sum, s) => sum + taxBack(s.purchasePrice ?? 0, s.soldPrice ?? s.price, rate), 0);
 
   return (
     <div>
@@ -65,7 +65,7 @@ export function SamplesView() {
           { k: "Samples", v: samples ? String(samples.length) : "-" },
           { k: "Verfügbar", v: samples ? String(samples.length - sold.length) : "-" },
           { k: "Erlöse", v: samples ? fmtEUR(revenue) : "-" },
-          { k: "Zurück nach Steuer", v: samples ? fmtEUR(back) : "-" },
+          { k: "Über die Steuer", v: samples && viaTax != null ? `+ ${fmtEUR(viaTax)}` : "-" },
         ].map((m) => (
           <div key={m.k} className="border-t border-white/[0.12] pt-3">
             <dt className="text-sm text-fg-muted">{m.k}</dt>
@@ -205,8 +205,12 @@ function SampleDetail({ sample: s }: { sample: Sample }) {
             <dd className="text-right font-medium tabular">{fmtEUR(s.soldPrice ?? s.price)}</dd>
             <dt className="text-fg-muted">Einkaufspreis</dt>
             <dd className="text-right tabular">{fmtEUR(purchase)}</dd>
-            <dt className="text-fg-muted">Zurück nach Steuer</dt>
-            <dd className="text-right font-medium text-neon tabular">{fmtEUR(payback(purchase, s.soldPrice ?? s.price, creator.statusCode))}</dd>
+            {creator.statusCode != null ? (
+              <>
+                <dt className="text-fg-muted">Später über die Steuer</dt>
+                <dd className="text-right font-medium text-neon tabular">+ {fmtEUR(taxBack(purchase, s.soldPrice ?? s.price, creator.statusCode))}</dd>
+              </>
+            ) : null}
           </dl>
         ) : (
           <div>
@@ -224,7 +228,7 @@ function SampleDetail({ sample: s }: { sample: Sample }) {
                     className={`rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-60 ${active ? "border-neon/70 bg-neon/[0.06]" : "border-white/[0.09] hover:border-white/25"}`}
                   >
                     <span className={`block text-sm font-medium ${active ? "text-neon" : ""}`}>{t.label}</span>
-                    <span className="block text-xs text-fg-muted tabular">{fmtEUR(offer(purchase, t.id, creator.statusCode).price)}</span>
+                    <span className="block text-xs text-fg-muted tabular">{fmtEUR(tierPrice(purchase, t.id))}</span>
                   </button>
                 );
               })}
@@ -290,7 +294,6 @@ function WebUpload({ onDone }: { onDone: () => void }) {
 
   const p = parseMoney(priceText);
   const purchase = Number.isFinite(p) && p > 0 && p <= 100000 ? p : null;
-  const o = purchase != null ? offer(purchase, tierId, creator.statusCode) : null;
   const urlOk = (v: string) => /^https?:\/\/\S+$/i.test(v.trim());
 
   async function submit(e: FormEvent) {
@@ -339,10 +342,6 @@ function WebUpload({ onDone }: { onDone: () => void }) {
       </div>
       <div className="grid content-start gap-4">
         <TierList purchase={purchase} rate={creator.statusCode} value={tierId} onChange={setTierId} name="up-tier" />
-        <div className="flex items-end justify-between gap-4 rounded-xl bg-white/[0.03] px-4 py-3">
-          <span className="text-sm text-fg-muted">Du bekommst zurück</span>
-          <AnimatedEuro value={o?.back ?? null} className="text-2xl font-semibold tracking-tight text-neon" />
-        </div>
         {error ? <Notice tone="error">{error}</Notice> : null}
         <Button type="submit" disabled={busy} className="justify-self-start">{busy ? "Wird hochgeladen …" : "Sample hochladen"}</Button>
       </div>

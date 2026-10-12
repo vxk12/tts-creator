@@ -5,7 +5,7 @@ import { Eye, EyeSlash, SignOut, TelegramLogo } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { telegramBotLink } from "@/lib/api";
-import { fmtPct } from "@/lib/pricing";
+import { fmtRate } from "@/lib/pricing";
 import { useDashboard } from "./DashboardShell";
 import { PageHead } from "./ui";
 
@@ -45,7 +45,7 @@ export function AccountView() {
             </div>
             <div>
               <dt className="text-fg-muted">Steuersatz</dt>
-              <dd className="mt-1 text-base font-medium tabular">{fmtPct(creator.statusCode)}</dd>
+              <dd className="mt-1 text-base font-medium tabular">{fmtRate(creator.statusCode)}</dd>
             </div>
           </dl>
           <div className="mt-6 rounded-xl bg-white/[0.03] p-4">

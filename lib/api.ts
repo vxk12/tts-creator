@@ -8,7 +8,8 @@ import { invoiceTotals } from "./invoice";
 
 export interface Creator {
   userId: string;
-  statusCode: number;
+  /** Steuersatz als Dezimalzahl; null = noch nicht festgelegt (optional seit der Upload-Fokussierung) */
+  statusCode: number | null;
   telegram: string;
 }
 
@@ -197,7 +198,7 @@ const demo = {
 const publicCreator = (c: DemoCreator): Creator => ({ userId: c.userId, statusCode: c.statusCode, telegram: c.telegram });
 
 /* ---------- Öffentliche Funktionen ---------- */
-export async function register(input: { isShopCreator: boolean; userId: string; statusCode: number }) {
+export async function register(input: { isShopCreator: boolean; userId: string; statusCode: number | null }) {
   if (!DEMO) return apiPost<{ creator: Creator; creatorKey: string }>({ action: "register", ...input });
   await delay(450);
   if (!input.isShopCreator) throw new Error("Die Plattform ist nur für offizielle TikTok Shop Creator.");

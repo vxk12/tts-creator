@@ -30,9 +30,9 @@ export function PriceCalculator() {
   return (
     <section id="rechner" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 md:py-28 lg:px-8">
       <Reveal className="max-w-2xl">
-        <h2 className="text-4xl font-semibold tracking-tight md:text-5xl">Rechne es selbst aus</h2>
+        <h2 className="text-4xl font-semibold tracking-tight md:text-5xl">Extra: mehr rausholen mit der Steuer</h2>
         <p className="mt-5 max-w-[60ch] text-lg leading-relaxed text-fg-muted">
-          Einkaufspreis eingeben, Steuersatz wählen. Genau so rechnet auch der Telegram-Bot.
+          Optional. Verkaufst du unter Einkaufspreis, zahlst du weniger Steuern. Hier siehst du, was später mit der Steuererklärung dazukommt.
         </p>
       </Reveal>
 
@@ -113,22 +113,20 @@ export function PriceCalculator() {
               <p className="text-sm text-fg-muted">
                 Stufe <span className="font-medium text-fg">{selected?.tier.label ?? "-"}</span>
               </p>
-              <dl className="mt-4 grid grid-cols-[1fr_auto] gap-x-6 gap-y-2.5 text-sm">
-                <dt className="text-fg-muted">Verkaufspreis</dt>
-                <dd className="text-right font-medium"><AnimatedEuro value={selected?.price ?? null} /></dd>
-                <dt className="text-fg-muted">Steuervorteil{rate != null ? ` (${fmtPct(rate)})` : ""}</dt>
-                <dd className="text-right tabular">{selected ? `+ ${fmtEUR(selected.taxSaving)}` : "-"}</dd>
-              </dl>
-              <div className="mt-5 flex items-end justify-between gap-4 border-t border-white/[0.08] pt-5">
-                <span className="text-sm font-medium text-fg">
-                  Du bekommst zurück
-                  {selected ? <span className="mt-0.5 block text-xs font-normal text-fg-muted tabular">{Math.round(selected.backShare * 100)} % von {fmtEUR(selected.purchase)}</span> : null}
-                </span>
+              <div className="mt-4 flex items-end justify-between gap-4">
+                <span className="text-sm font-medium text-fg">{selected && selected.taxSaving > 0 ? "Du bekommst bis zu" : "Du bekommst"}</span>
                 <AnimatedEuro value={selected?.back ?? null} className="text-3xl font-semibold tracking-tight text-neon sm:text-4xl" />
               </div>
-              <p className="mt-4 text-xs leading-relaxed text-fg-subtle">
-                Verkaufspreis plus Steuervorteil. Ein Verkauf unter Einkaufspreis mindert deine Steuer um (Einkaufspreis minus Verkaufspreis) × Steuersatz. Schätzung, keine Steuerberatung.
+              <dl className="mt-4 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2.5 border-t border-white/[0.08] pt-4 text-sm">
+                <dd className="text-right font-medium tabular"><AnimatedEuro value={selected?.price ?? null} /></dd>
+                <dt className="text-fg-muted">sofort vom Käufer</dt>
+                <dd className="text-right font-medium tabular">+ <AnimatedEuro value={selected?.taxSaving ?? null} /></dd>
+                <dt className="text-fg-muted">später mit deiner Steuererklärung{rate != null ? ` (${fmtPct(rate)})` : ""}</dt>
+              </dl>
+              <p className="mt-4 text-sm text-fg-muted">
+                {selected && selected.taxSaving > 0 ? `Ohne Steuererklärung bleibt es bei ${fmtEUR(selected.price)}.` : "Bei 0 % Steuersatz kommt über die Steuer nichts dazu."}
               </p>
+              <p className="mt-2 text-xs text-fg-subtle">Schätzung, keine Steuerberatung.</p>
               <ButtonLink href="/registrieren" className="mt-6">
                 Registrieren
               </ButtonLink>

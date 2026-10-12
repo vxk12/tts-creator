@@ -63,6 +63,11 @@ export function payback(purchase: number, price: number, rate: number): number {
   return (toCents(purchase) - toCents(realLoss(purchase, price, rate))) / 100;
 }
 
+/** Was später über die Steuer kommt (Steuervorteil), bei beliebigem Verkaufspreis. Negativ, wenn über Einkaufspreis verkauft. */
+export function taxBack(purchase: number, price: number, rate: number): number {
+  return (toCents(payback(purchase, price, rate)) - toCents(price)) / 100;
+}
+
 export interface Offer {
   tier: Tier;
   purchase: number;
@@ -115,3 +120,5 @@ export function parseRatePercent(value: string): number | null {
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" });
 export const fmtEUR = (n: number) => (Number.isFinite(n) ? eur.format(n) : "-");
 export const fmtPct = (rate: number) => `${(rate * 100).toLocaleString("de-DE", { maximumFractionDigits: 2 })} %`;
+/** Steuersatz anzeigen; null = noch nicht festgelegt */
+export const fmtRate = (rate: number | null) => (rate == null ? "nicht festgelegt" : fmtPct(rate));

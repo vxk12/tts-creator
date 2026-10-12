@@ -3,7 +3,7 @@
 Ablauf:
   1. /start (aus der Web-App: Deep-Link mit Username) → einmalig mit Creator-Key anmelden
   2. TikTok-Shop-Link schicken → Beta-Produktdaten
-  3. Einkaufspreis → drei Preisstufen mit dem, was nach Steuer zurückkommt
+  3. Einkaufspreis → drei Preisstufen (mit Steuersatz: was später über die Steuer dazukommt)
   4. optional Video-Link → fertige Listing-Vorschau → „In meine Web-App hochladen“
 
 Start:  .venv/bin/python main.py
@@ -36,7 +36,7 @@ from telegram.ext import (
 from backend import ApiBackend, Backend, BackendError, Credentials, DemoBackend, NewSample
 from beta_catalog import Product, extract_link, is_tiktok_link, product_from_link
 from config import DATA_DIR, Config, load_config
-from pricing import TIER_BY_ID, TIERS, fmt_eur, fmt_rate, parse_money, payback, share_pct, tier_price
+from pricing import TIER_BY_ID, TIERS, fmt_eur, fmt_rate, parse_money, tax_extra, tier_price
 from storage import Session, SessionStore
 
 log = logging.getLogger("tts-bot")
@@ -231,7 +231,7 @@ async def login_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await say(
         update,
         f"✅ <b>Verbunden!</b> Dein Konto <b>@{esc(creator.user_id)}</b> ist jetzt mit Telegram verknüpft.\n\n"
-        f"🧾 Steuersatz aus deiner Web-App: <b>{fmt_rate(creator.status_code)}</b>\n\n"
+        f"🧾 Steuersatz: <b>{fmt_rate(creator.status_code)}</b>{'' if creator.status_code is not None else ' (optional)'}\n\n"
         "Schick mir einfach einen TikTok-Shop-Link, um ein Sample hochzuladen.",
         menu_buttons(ctx),
     )
@@ -305,25 +305,22 @@ async def up_price_shop(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 async def show_tiers(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     draft = ctx.user_data["draft"]
     purchase: Decimal = draft["purchase"]
-    rate: Decimal = draft["session"].status_code
-    lines = [
-        f"💶 Einkaufspreis: <b>{fmt_eur(purchase)}</b>",
-        f"🧾 Dein Steuersatz: <b>{fmt_rate(rate)}</b> (aus deiner Web-App)",
-        "",
-    ]
+    rate: Decimal | None = draft["session"].status_code
+    lines = [f"💶 Einkaufspreis: <b>{fmt_eur(purchase)}</b>", ""]
     buttons = []
+    any_extra = False
     for tier in TIERS:
         price = tier_price(purchase, tier)
-        back = payback(purchase, price, rate)
-        lines.append(f"{tier.emoji} <b>{tier.label}</b> ({int(tier.factor * 100)} %) – <b>{fmt_eur(price)}</b>\n      zurück nach Steuer: {fmt_eur(back)} ({share_pct(back, purchase)} %)")
+        line = f"{tier.emoji} <b>{tier.label}</b> ({int(tier.factor * 100)} %) – <b>{fmt_eur(price)}</b>"
+        extra = tax_extra(purchase, price, rate)
+        if extra > 0:
+            any_extra = True
+            line += f"\n      + {fmt_eur(extra)} später über die Steuer"
+        lines.append(line)
         buttons.append([InlineKeyboardButton(f"{tier.emoji} {tier.label} · {fmt_eur(price)}", callback_data=f"tier:{tier.id}")])
-    lines += [
-        "",
-        "<i>Zurück = Verkaufspreis + Steuervorteil. Ein Verkauf unter Einkaufspreis mindert deine Steuer.</i>",
-        f"<i>{DISCLAIMER}</i>",
-        "",
-        "Welche Preisstufe nimmst du?",
-    ]
+    if any_extra:
+        lines += ["", f"<i>Der Steuerteil kommt mit deiner Steuererklärung, ohne bleibt es beim Verkaufspreis. {DISCLAIMER}</i>"]
+    lines += ["", "Welche Preisstufe nimmst du?"]
     await say(update, "\n".join(lines), buttons + [CANCEL_ROW])
     return UP_TIER
 
@@ -367,7 +364,7 @@ async def show_preview(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     session: Session = draft["session"]
     tier = TIER_BY_ID[draft["tier"]]
     price = tier_price(draft["purchase"], tier)
-    back = payback(draft["purchase"], price, session.status_code)
+    extra = tax_extra(draft["purchase"], price, session.status_code)
     video = f'<a href="{esc(draft["video"])}">ansehen</a>' if draft["video"] else "folgt"
     caption = (
         "📝 <b>Deine Anzeige</b>\n\n"
@@ -375,9 +372,10 @@ async def show_preview(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         f"💶 <b>{fmt_eur(price)}</b> statt <s>{fmt_eur(product.shop_price)}</s> · Stufe {tier.label}\n"
         f"✨ Zustand: {CONDITION}\n"
         f"🎬 Video-Nachweis: {video}\n"
-        f"👤 von @{esc(session.user_id)}\n\n"
-        f"💚 Du bekommst nach Steuer zurück: <b>{fmt_eur(back)}</b> ({share_pct(back, draft['purchase'])} %)"
+        f"👤 von @{esc(session.user_id)}"
     )
+    if extra > 0:
+        caption += f"\n\n💚 + <b>{fmt_eur(extra)}</b> später über die Steuer"
     await send_product_photo(update, ctx, product, caption, [
         [InlineKeyboardButton("✅ In meine Web-App hochladen", callback_data="confirm:upload")],
         [InlineKeyboardButton("💶 Preisstufe ändern", callback_data="confirm:tier"),
@@ -500,7 +498,7 @@ async def help_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "ℹ️ <b>So funktioniert's</b>\n\n"
         "1. Schick mir einen TikTok-Shop-Link (oder /neu)\n"
         "2. Gib deinen Einkaufspreis ein\n"
-        "3. Wähle eine Preisstufe – du siehst direkt, wie viel du nach Steuer zurückbekommst\n"
+        "3. Wähle eine Preisstufe\n"
         "4. Lade das Sample in deine Web-App hoch\n\n"
         "/neu – Sample hochladen\n/menu – Hauptmenü\n/konto – Konto & Steuersatz\n/abbrechen – aktuellen Vorgang abbrechen\n/abmelden – Telegram trennen",
     )
@@ -529,14 +527,14 @@ async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 # Begrüßung im leeren Chat (vor dem ersten „Start“) und Kurzbeschreibung im Bot-Profil
 BOT_DESCRIPTION = (
     "👋 Willkommen bei TTS Deals!\n\n"
-    "Hier verkaufst du als TikTok Shop Creator deine Samples ganz einfach:\n\n"
+    "Hier lädst du als TikTok Shop Creator deine Samples in Sekunden hoch:\n\n"
     "📦 TikTok-Shop-Link schicken\n"
     "💶 Einkaufspreis eingeben\n"
-    "✅ Preisstufe wählen und sehen, wie viel du nach Steuer zurückbekommst\n\n"
+    "✅ Preisstufe wählen, fertig\n\n"
     "Noch kein Konto? Registriere dich zuerst auf tts-creator-beta.vercel.app/registrieren\n\n"
     "Tippe auf „Start“, um loszulegen."
 )
-BOT_SHORT_DESCRIPTION = "Samples als TikTok Shop Creator hochladen und sehen, wie viel du nach Steuer zurückbekommst."
+BOT_SHORT_DESCRIPTION = "Samples als TikTok Shop Creator in Sekunden hochladen: Link schicken, Preis wählen, fertig."
 
 
 async def post_init(app: Application) -> None:

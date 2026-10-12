@@ -23,7 +23,7 @@ class BackendError(Exception):
 @dataclass(frozen=True)
 class Creator:
     user_id: str
-    status_code: Decimal      # Steuersatz als Dezimalzahl (0.30 = 30 %)
+    status_code: Decimal | None  # Steuersatz als Dezimalzahl (0.30 = 30 %); None = nicht festgelegt (optional)
     telegram: str = ""
 
 
@@ -55,7 +55,7 @@ class Backend(Protocol):
 def _creator(data: dict[str, Any]) -> Creator:
     return Creator(
         user_id=str(data["userId"]),
-        status_code=Decimal(str(data.get("statusCode", 0))),
+        status_code=None if data.get("statusCode") is None else Decimal(str(data["statusCode"])),
         telegram=str(data.get("telegram") or ""),
     )
 

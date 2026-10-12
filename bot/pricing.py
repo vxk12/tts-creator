@@ -46,9 +46,9 @@ def payback(purchase: Decimal, price: Decimal, tax_rate: Decimal) -> Decimal:
     return purchase - real_loss(purchase, price, tax_rate)
 
 
-def share_pct(part: Decimal, whole: Decimal) -> int:
-    """Anteil in ganzen Prozent (kaufmännisch gerundet), z. B. 21,33 von 27 → 79."""
-    return int((part / whole * 100).quantize(Decimal(1), rounding=ROUND_HALF_UP)) if whole else 0
+def tax_extra(purchase: Decimal, price: Decimal, tax_rate: Decimal | None) -> Decimal:
+    """Was später über die Steuer dazukommt (Steuervorteil). 0 ohne Steuersatz."""
+    return payback(purchase, price, tax_rate) - price if tax_rate else Decimal(0)
 
 
 def parse_money(text: str) -> Decimal | None:
@@ -79,7 +79,9 @@ def fmt_eur(value: Decimal) -> str:
     return f"{whole},{frac} €"
 
 
-def fmt_rate(rate: Decimal) -> str:
+def fmt_rate(rate: Decimal | None) -> str:
+    if rate is None:
+        return "nicht festgelegt"
     pct = (rate * 100).normalize()
     text = f"{pct:f}".replace(".", ",")
     return f"{text} %"
