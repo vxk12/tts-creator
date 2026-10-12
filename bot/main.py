@@ -526,7 +526,25 @@ async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE) -> None:
             pass
 
 
+# Begrüßung im leeren Chat (vor dem ersten „Start“) und Kurzbeschreibung im Bot-Profil
+BOT_DESCRIPTION = (
+    "👋 Willkommen bei TTS Deals!\n\n"
+    "Hier verkaufst du als TikTok Shop Creator deine Samples ganz einfach:\n\n"
+    "📦 TikTok-Shop-Link schicken\n"
+    "💶 Einkaufspreis eingeben\n"
+    "✅ Preisstufe wählen und deinen echten Verlust nach Steuer sehen\n\n"
+    "Noch kein Konto? Registriere dich zuerst auf tts-creator-beta.vercel.app/registrieren\n\n"
+    "Tippe auf „Start“, um loszulegen."
+)
+BOT_SHORT_DESCRIPTION = "Samples als TikTok Shop Creator hochladen und den fairen Preis inklusive echtem Verlust nach Steuer sehen."
+
+
 async def post_init(app: Application) -> None:
+    try:
+        await app.bot.set_my_description(BOT_DESCRIPTION)
+        await app.bot.set_my_short_description(BOT_SHORT_DESCRIPTION)
+    except TelegramError as exc:  # z. B. Rate-Limit: Bot läuft trotzdem
+        log.warning("Bot-Beschreibung nicht gesetzt: %s", exc)
     await app.bot.set_my_commands([
         BotCommand("neu", "Sample hochladen"),
         BotCommand("menu", "Hauptmenü"),
