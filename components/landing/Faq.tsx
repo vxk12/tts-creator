@@ -5,7 +5,7 @@ const QA = [
   { q: "Wer kann mitmachen?", a: "Nur offizielle TikTok Shop Creator. Ohne Shop-Creator-Status ist keine Registrierung möglich." },
   {
     q: "Warum brauche ich meinen Steuersatz?",
-    a: "Ein Verkauf unter Einkaufspreis mindert deine Steuer. Mit deinem Steuersatz zeigen wir dir, was dich ein Verkauf wirklich kostet.",
+    a: "Ein Verkauf unter Einkaufspreis mindert deine Steuer. Mit deinem Steuersatz zeigen wir dir, wie viel du nach Steuer wirklich zurückbekommst.",
   },
   {
     q: "Was, wenn ich meinen Steuersatz nicht kenne?",

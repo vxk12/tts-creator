@@ -212,7 +212,7 @@ export function Onboarding() {
 
             {step === "tax" && (
               <motion.section key="tax" {...slide}>
-                <Head title="Kennst du deinen exakten Grenzsteuersatz?" text="Damit zeigen wir dir zu jedem Sample deinen echten Verlust nach Steuer." />
+                <Head title="Kennst du deinen exakten Grenzsteuersatz?" text="Damit zeigen wir dir zu jedem Sample, wie viel du nach Steuer zurückbekommst." />
                 <div className="mt-10">
                   <RateSelector value={rate} onChange={(s) => { setRate(s); setError(""); }} idPrefix="ob" showQuestion={false} />
                 </div>

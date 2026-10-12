@@ -7,7 +7,7 @@ import { AnimatedEuro } from "./AnimatedEuro";
 
 /**
  * Beispielrechnung für ein Sample: Wohin gehen die Euro des Einkaufspreises?
- * Balken = Einkaufspreis, aufgeteilt in Verkaufspreis, Steuervorteil und echten Verlust.
+ * Balken = Einkaufspreis. Neon = was zurückkommt (Verkaufspreis + Steuervorteil), grau = der Rest.
  */
 export function TaxBreakdown({ rate, purchase = 27 }: { rate: number; purchase?: number }) {
   const reduce = useReducedMotion();
@@ -41,23 +41,23 @@ export function TaxBreakdown({ rate, purchase = 27 }: { rate: number; purchase?:
         })}
       </div>
 
-      {/* Gespiegelt (Verlust links, Verkaufspreis rechts): von Fair zu Sofort weg wandern die Grenzen nach rechts.
-          Ebenen von unten: echter Verlust (voll), Steuervorteil, Verkaufspreis. Nur transform wird animiert. */}
-      <div className="relative mt-6 h-3 overflow-hidden rounded-full bg-neon" aria-hidden="true">
+      {/* Gespiegelt (Rest links, Verkaufspreis rechts): von Fair zu Sofort weg wandern die Grenzen nach rechts.
+          Ebenen von unten: Rest (Hintergrund), Steuervorteil, Verkaufspreis. Nur transform wird animiert. */}
+      <div className="relative mt-6 h-3 overflow-hidden rounded-full bg-white/[0.08]" aria-hidden="true">
         <motion.div
           className="absolute inset-0 origin-right bg-neon-deep"
           initial={false}
           animate={{ scaleX: (o.price + o.taxSaving) / o.purchase }}
           transition={transition}
         />
-        <motion.div className="absolute inset-0 origin-right bg-ink-700" initial={false} animate={{ scaleX: o.price / o.purchase }} transition={transition} />
+        <motion.div className="absolute inset-0 origin-right bg-neon" initial={false} animate={{ scaleX: o.price / o.purchase }} transition={transition} />
       </div>
 
       <dl className="mt-5 grid grid-cols-[1fr_auto] gap-x-6 gap-y-3 text-sm" aria-live="polite">
         <dt className="text-fg-muted">Einkaufspreis</dt>
         <dd className="text-right tabular">{fmtEUR(o.purchase)}</dd>
         <dt className="flex items-center gap-2.5 text-fg-muted">
-          <span className="size-2.5 rounded-sm bg-ink-700 ring-1 ring-white/20" aria-hidden="true" />
+          <span className="size-2.5 rounded-sm bg-neon" aria-hidden="true" />
           Verkaufspreis {o.tier.label} ({Math.round(o.tier.factor * 100)} %)
         </dt>
         <dd className="text-right tabular"><AnimatedEuro value={o.price} /></dd>
@@ -69,14 +69,14 @@ export function TaxBreakdown({ rate, purchase = 27 }: { rate: number; purchase?:
       </dl>
 
       <div className="mt-5 flex items-end justify-between gap-4 border-t border-white/[0.08] pt-5">
-        <span className="flex items-center gap-2.5 text-sm font-medium text-fg">
-          <span className="size-2.5 rounded-sm bg-neon" aria-hidden="true" />
-          Echter Verlust nach Steuer
+        <span className="text-sm font-medium text-fg">
+          Du bekommst zurück
+          <span className="mt-0.5 block text-xs font-normal text-fg-muted tabular">{Math.round(o.backShare * 100)} % von {fmtEUR(o.purchase)}</span>
         </span>
-        <AnimatedEuro value={o.loss} className="text-3xl font-semibold tracking-tight text-neon" />
+        <AnimatedEuro value={o.back} className="text-3xl font-semibold tracking-tight text-neon" />
       </div>
       <p className="mt-3 text-xs leading-relaxed text-fg-subtle">
-        (Einkaufspreis minus Verkaufspreis) × (1 minus Steuersatz). Ein Verkauf unter Einkaufspreis mindert deine Steuer. Schätzung, keine Steuerberatung.
+        Verkaufspreis plus Steuervorteil. Ein Verkauf unter Einkaufspreis mindert deine Steuer um (Einkaufspreis minus Verkaufspreis) × Steuersatz. Schätzung, keine Steuerberatung.
       </p>
     </div>
   );

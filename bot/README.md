@@ -16,8 +16,8 @@
 | 🟡 Schnell | 55 % |
 | 🔴 Sofort weg | 40 % |
 
-Zu jeder Stufe zeigt der Bot den **echten Verlust nach Steuer**:
-`(Einkaufspreis − Verkaufspreis) × (1 − Steuersatz)` – Steuersatz aus der Web-App.
+Zu jeder Stufe zeigt der Bot, **was nach Steuer zurückkommt**:
+`Verkaufspreis + Steuervorteil` = `Einkaufspreis − (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz)`, Steuersatz aus der Web-App.
 
 Die Stufen stehen an drei Stellen und müssen gleich bleiben: `bot/pricing.py`, `assets/js/api.js` (PRICING.TIERS), `backend/Code.gs` (TIERS).
 
@@ -66,7 +66,7 @@ Die Tests spielen den kompletten Chat-Ablauf gegen ein simuliertes Telegram durc
 
 ```
 main.py          Bot: Anmeldung, Sample-Flow, Konto
-pricing.py       Preisstufen, echter Verlust, Geldformat
+pricing.py       Preisstufen, zurück nach Steuer, Geldformat
 beta_catalog.py  Beispiel-Produktdaten zu einem TikTok-Shop-Link
 backend.py       Anbindung an die Web-App (Apps Script) bzw. Demo-Modus
 storage.py       Verknüpfung Telegram-Nutzer ↔ Web-App-Konto (SQLite)

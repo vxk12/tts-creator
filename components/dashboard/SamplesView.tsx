@@ -9,7 +9,7 @@ import { Notice } from "@/components/ui/Notice";
 import { TierList } from "@/components/pricing/TierList";
 import { AnimatedEuro } from "@/components/pricing/AnimatedEuro";
 import { addSample, telegramBotLink, today, updateSample, type Sample, type SampleStatus } from "@/lib/api";
-import { TIERS, fmtEUR, offer, parseMoney, realLoss, type TierId } from "@/lib/pricing";
+import { TIERS, fmtEUR, offer, parseMoney, payback, type TierId } from "@/lib/pricing";
 import { fmtDate } from "@/lib/invoice";
 import { useDashboard } from "./DashboardShell";
 import { PageHead, inputCls } from "./ui";
@@ -39,7 +39,7 @@ export function SamplesView() {
 
   const sold = (samples ?? []).filter((s) => statusOf(s) === "verkauft");
   const revenue = sold.reduce((sum, s) => sum + (s.soldPrice ?? s.price), 0);
-  const loss = sold.reduce((sum, s) => sum + realLoss(s.purchasePrice ?? 0, s.soldPrice ?? s.price, creator.statusCode), 0);
+  const back = sold.reduce((sum, s) => sum + payback(s.purchasePrice ?? 0, s.soldPrice ?? s.price, creator.statusCode), 0);
 
   return (
     <div>
@@ -65,7 +65,7 @@ export function SamplesView() {
           { k: "Samples", v: samples ? String(samples.length) : "-" },
           { k: "Verfügbar", v: samples ? String(samples.length - sold.length) : "-" },
           { k: "Erlöse", v: samples ? fmtEUR(revenue) : "-" },
-          { k: "Echter Verlust", v: samples ? fmtEUR(loss) : "-" },
+          { k: "Zurück nach Steuer", v: samples ? fmtEUR(back) : "-" },
         ].map((m) => (
           <div key={m.k} className="border-t border-white/[0.12] pt-3">
             <dt className="text-sm text-fg-muted">{m.k}</dt>
@@ -205,8 +205,8 @@ function SampleDetail({ sample: s }: { sample: Sample }) {
             <dd className="text-right font-medium tabular">{fmtEUR(s.soldPrice ?? s.price)}</dd>
             <dt className="text-fg-muted">Einkaufspreis</dt>
             <dd className="text-right tabular">{fmtEUR(purchase)}</dd>
-            <dt className="text-fg-muted">Echter Verlust nach Steuer</dt>
-            <dd className="text-right font-medium text-neon tabular">{fmtEUR(realLoss(purchase, s.soldPrice ?? s.price, creator.statusCode))}</dd>
+            <dt className="text-fg-muted">Zurück nach Steuer</dt>
+            <dd className="text-right font-medium text-neon tabular">{fmtEUR(payback(purchase, s.soldPrice ?? s.price, creator.statusCode))}</dd>
           </dl>
         ) : (
           <div>
@@ -340,8 +340,8 @@ function WebUpload({ onDone }: { onDone: () => void }) {
       <div className="grid content-start gap-4">
         <TierList purchase={purchase} rate={creator.statusCode} value={tierId} onChange={setTierId} name="up-tier" />
         <div className="flex items-end justify-between gap-4 rounded-xl bg-white/[0.03] px-4 py-3">
-          <span className="text-sm text-fg-muted">Echter Verlust nach Steuer</span>
-          <AnimatedEuro value={o?.loss ?? null} className="text-2xl font-semibold tracking-tight text-neon" />
+          <span className="text-sm text-fg-muted">Du bekommst zurück</span>
+          <AnimatedEuro value={o?.back ?? null} className="text-2xl font-semibold tracking-tight text-neon" />
         </div>
         {error ? <Notice tone="error">{error}</Notice> : null}
         <Button type="submit" disabled={busy} className="justify-self-start">{busy ? "Wird hochgeladen …" : "Sample hochladen"}</Button>

@@ -3,7 +3,7 @@
 Ablauf:
   1. /start (aus der Web-App: Deep-Link mit Username) → einmalig mit Creator-Key anmelden
   2. TikTok-Shop-Link schicken → Beta-Produktdaten
-  3. Einkaufspreis → drei Preisstufen mit echtem Verlust nach Steuer
+  3. Einkaufspreis → drei Preisstufen mit dem, was nach Steuer zurückkommt
   4. optional Video-Link → fertige Listing-Vorschau → „In meine Web-App hochladen“
 
 Start:  .venv/bin/python main.py
@@ -36,7 +36,7 @@ from telegram.ext import (
 from backend import ApiBackend, Backend, BackendError, Credentials, DemoBackend, NewSample
 from beta_catalog import Product, extract_link, is_tiktok_link, product_from_link
 from config import DATA_DIR, Config, load_config
-from pricing import TIER_BY_ID, TIERS, fmt_eur, fmt_rate, parse_money, real_loss, tier_price
+from pricing import TIER_BY_ID, TIERS, fmt_eur, fmt_rate, parse_money, payback, share_pct, tier_price
 from storage import Session, SessionStore
 
 log = logging.getLogger("tts-bot")
@@ -314,12 +314,12 @@ async def show_tiers(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     buttons = []
     for tier in TIERS:
         price = tier_price(purchase, tier)
-        loss = real_loss(purchase, price, rate)
-        lines.append(f"{tier.emoji} <b>{tier.label}</b> ({int(tier.factor * 100)} %) – <b>{fmt_eur(price)}</b>\n      echter Verlust nach Steuer: {fmt_eur(loss)}")
+        back = payback(purchase, price, rate)
+        lines.append(f"{tier.emoji} <b>{tier.label}</b> ({int(tier.factor * 100)} %) – <b>{fmt_eur(price)}</b>\n      zurück nach Steuer: {fmt_eur(back)} ({share_pct(back, purchase)} %)")
         buttons.append([InlineKeyboardButton(f"{tier.emoji} {tier.label} · {fmt_eur(price)}", callback_data=f"tier:{tier.id}")])
     lines += [
         "",
-        "<i>Echter Verlust = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz).</i>",
+        "<i>Zurück = Verkaufspreis + Steuervorteil. Ein Verkauf unter Einkaufspreis mindert deine Steuer.</i>",
         f"<i>{DISCLAIMER}</i>",
         "",
         "Welche Preisstufe nimmst du?",
@@ -367,7 +367,7 @@ async def show_preview(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     session: Session = draft["session"]
     tier = TIER_BY_ID[draft["tier"]]
     price = tier_price(draft["purchase"], tier)
-    loss = real_loss(draft["purchase"], price, session.status_code)
+    back = payback(draft["purchase"], price, session.status_code)
     video = f'<a href="{esc(draft["video"])}">ansehen</a>' if draft["video"] else "folgt"
     caption = (
         "📝 <b>Deine Anzeige</b>\n\n"
@@ -376,7 +376,7 @@ async def show_preview(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         f"✨ Zustand: {CONDITION}\n"
         f"🎬 Video-Nachweis: {video}\n"
         f"👤 von @{esc(session.user_id)}\n\n"
-        f"📉 Dein echter Verlust nach Steuer: <b>{fmt_eur(loss)}</b>"
+        f"💚 Du bekommst nach Steuer zurück: <b>{fmt_eur(back)}</b> ({share_pct(back, draft['purchase'])} %)"
     )
     await send_product_photo(update, ctx, product, caption, [
         [InlineKeyboardButton("✅ In meine Web-App hochladen", callback_data="confirm:upload")],
@@ -500,7 +500,7 @@ async def help_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "ℹ️ <b>So funktioniert's</b>\n\n"
         "1. Schick mir einen TikTok-Shop-Link (oder /neu)\n"
         "2. Gib deinen Einkaufspreis ein\n"
-        "3. Wähle eine Preisstufe – du siehst direkt deinen echten Verlust nach Steuer\n"
+        "3. Wähle eine Preisstufe – du siehst direkt, wie viel du nach Steuer zurückbekommst\n"
         "4. Lade das Sample in deine Web-App hoch\n\n"
         "/neu – Sample hochladen\n/menu – Hauptmenü\n/konto – Konto & Steuersatz\n/abbrechen – aktuellen Vorgang abbrechen\n/abmelden – Telegram trennen",
     )
@@ -532,11 +532,11 @@ BOT_DESCRIPTION = (
     "Hier verkaufst du als TikTok Shop Creator deine Samples ganz einfach:\n\n"
     "📦 TikTok-Shop-Link schicken\n"
     "💶 Einkaufspreis eingeben\n"
-    "✅ Preisstufe wählen und deinen echten Verlust nach Steuer sehen\n\n"
+    "✅ Preisstufe wählen und sehen, wie viel du nach Steuer zurückbekommst\n\n"
     "Noch kein Konto? Registriere dich zuerst auf tts-creator-beta.vercel.app/registrieren\n\n"
     "Tippe auf „Start“, um loszulegen."
 )
-BOT_SHORT_DESCRIPTION = "Samples als TikTok Shop Creator hochladen und den fairen Preis inklusive echtem Verlust nach Steuer sehen."
+BOT_SHORT_DESCRIPTION = "Samples als TikTok Shop Creator hochladen und sehen, wie viel du nach Steuer zurückbekommst."
 
 
 async def post_init(app: Application) -> None:

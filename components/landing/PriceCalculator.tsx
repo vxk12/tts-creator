@@ -116,17 +116,18 @@ export function PriceCalculator() {
               <dl className="mt-4 grid grid-cols-[1fr_auto] gap-x-6 gap-y-2.5 text-sm">
                 <dt className="text-fg-muted">Verkaufspreis</dt>
                 <dd className="text-right font-medium"><AnimatedEuro value={selected?.price ?? null} /></dd>
-                <dt className="text-fg-muted">Differenz zum Einkauf</dt>
-                <dd className="text-right tabular">{selected ? `- ${fmtEUR(selected.diff)}` : "-"}</dd>
-                <dt className="text-fg-muted">Steuerersparnis{rate != null ? ` (${fmtPct(rate)})` : ""}</dt>
+                <dt className="text-fg-muted">Steuervorteil{rate != null ? ` (${fmtPct(rate)})` : ""}</dt>
                 <dd className="text-right tabular">{selected ? `+ ${fmtEUR(selected.taxSaving)}` : "-"}</dd>
               </dl>
               <div className="mt-5 flex items-end justify-between gap-4 border-t border-white/[0.08] pt-5">
-                <span className="text-sm font-medium text-fg">Echter Verlust nach Steuer</span>
-                <AnimatedEuro value={selected?.loss ?? null} className="text-3xl font-semibold tracking-tight text-neon sm:text-4xl" />
+                <span className="text-sm font-medium text-fg">
+                  Du bekommst zurück
+                  {selected ? <span className="mt-0.5 block text-xs font-normal text-fg-muted tabular">{Math.round(selected.backShare * 100)} % von {fmtEUR(selected.purchase)}</span> : null}
+                </span>
+                <AnimatedEuro value={selected?.back ?? null} className="text-3xl font-semibold tracking-tight text-neon sm:text-4xl" />
               </div>
               <p className="mt-4 text-xs leading-relaxed text-fg-subtle">
-                Echter Verlust = (Einkaufspreis minus Verkaufspreis) × (1 minus Steuersatz). Schätzung, keine Steuerberatung.
+                Verkaufspreis plus Steuervorteil. Ein Verkauf unter Einkaufspreis mindert deine Steuer um (Einkaufspreis minus Verkaufspreis) × Steuersatz. Schätzung, keine Steuerberatung.
               </p>
               <ButtonLink href="/registrieren" className="mt-6">
                 Registrieren

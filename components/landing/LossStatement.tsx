@@ -11,12 +11,12 @@ export function LossStatement() {
   const lines = [
     { text: `${fmtEUR(EX.purchase)} bezahlt.`, cls: "text-fg-subtle" },
     { text: `${fmtEUR(EX.price)} verkauft.`, cls: "text-fg" },
-    { text: `${fmtEUR(EX.loss)} echter Verlust.`, cls: "text-neon" },
+    { text: `${fmtEUR(EX.back)} zurück.`, cls: "text-neon" },
   ];
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 md:py-28 lg:px-8">
       <div className="max-w-4xl">
-        <h2 className="sr-only">Echter Verlust nach Steuer</h2>
+        <h2 className="sr-only">Was nach Steuer zurückkommt</h2>
         <p className="text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
           {lines.map((l, i) => (
             <motion.span
@@ -38,8 +38,8 @@ export function LossStatement() {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mt-8 max-w-[60ch] text-lg leading-relaxed text-fg-muted"
         >
-          Ein Verkauf unter Einkaufspreis mindert deine Steuer. Bei {fmtPct(EX.rate)} Steuersatz kostet dich der Fair-Preis nicht{" "}
-          {fmtEUR(EX.diff)}, sondern {fmtEUR(EX.loss)}. Genau das zeigt dir der Bot zu jeder Preisstufe.
+          Ein Verkauf unter Einkaufspreis mindert deine Steuer. Bei {fmtPct(EX.rate)} Steuersatz kommen beim Fair-Preis nicht nur{" "}
+          {fmtEUR(EX.price)}, sondern {fmtEUR(EX.back)} bei dir an. Genau das zeigt dir der Bot zu jeder Preisstufe.
         </motion.p>
       </div>
     </section>

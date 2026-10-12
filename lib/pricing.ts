@@ -1,9 +1,10 @@
 /**
  * Preislogik der Plattform.
  *
- * Steuersatz (Status_Code, Spalte C): kommt aus dem Onboarding und bestimmt den echten Verlust.
+ * Steuersatz (Status_Code, Spalte C): kommt aus dem Onboarding.
  * Preisstufen (vorläufig): Verkaufspreis = Einkaufspreis × Faktor der Stufe.
  * Echter Verlust = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz).
+ * Angezeigt wird das Positive: Zurück nach Steuer = Einkaufspreis − echter Verlust = Verkaufspreis + Steuervorteil.
  *
  * Muss zu bot/pricing.py und CONFIG.TIERS in backend/Code.gs passen.
  * Gerechnet wird in ganzen Cent bzw. Basispunkten, damit Website und Bot (Python/Decimal)
@@ -57,6 +58,11 @@ export function realLoss(purchase: number, price: number, rate: number): number 
   return mulCents(toCents(purchase) - toCents(price), 10000 - toBp(rate)) / 100;
 }
 
+/** Zurück nach Steuer = Einkaufspreis − echter Verlust (= Verkaufspreis + Steuervorteil) */
+export function payback(purchase: number, price: number, rate: number): number {
+  return (toCents(purchase) - toCents(realLoss(purchase, price, rate))) / 100;
+}
+
 export interface Offer {
   tier: Tier;
   purchase: number;
@@ -65,6 +71,10 @@ export interface Offer {
   rate: number;
   taxSaving: number;
   loss: number;
+  /** Zurück nach Steuer */
+  back: number;
+  /** Anteil vom Einkaufspreis, der zurückkommt (0 bis 1) */
+  backShare: number;
 }
 
 export function offer(purchase: number, id: TierId | string, rate: number): Offer {
@@ -80,6 +90,8 @@ export function offer(purchase: number, id: TierId | string, rate: number): Offe
     rate,
     taxSaving: (toCents(diff) - toCents(loss)) / 100,
     loss,
+    back: (toCents(purchase) - toCents(loss)) / 100,
+    backShare: toCents(purchase) > 0 ? (toCents(purchase) - toCents(loss)) / toCents(purchase) : 0,
   };
 }
 

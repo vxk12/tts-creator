@@ -129,7 +129,7 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
 
         out = await self.text("27")
         tiers = out[0]
-        for snippet in ["18,90 €", "5,67 €", "14,85 €", "8,51 €", "10,80 €", "11,34 €", "30 %"]:
+        for snippet in ["18,90 €", "21,33 € (79 %)", "14,85 €", "18,49 € (68 %)", "10,80 €", "15,66 € (58 %)", "30 %"]:
             self.assertIn(snippet, tiers)
 
         out = await self.tap("tier:fair")

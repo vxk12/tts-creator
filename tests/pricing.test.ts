@@ -9,6 +9,8 @@ test("Beispiel 27 € bei 30 %", () => {
     const o = offer(27, id, 0.3);
     assert.equal(o.price, price, id);
     assert.equal(o.loss, loss, id);
+    assert.equal(o.back, Math.round((27 - loss) * 100) / 100, id);
+    assert.equal(Math.round((o.price + o.taxSaving) * 100), Math.round(o.back * 100), id);
     assert.equal(Math.abs(Math.round((o.diff - o.loss - o.taxSaving) * 100)), 0, id);
   }
 });
@@ -32,19 +34,20 @@ test("Website und Bot rechnen cent-genau gleich (Vergleich mit bot/pricing.py)",
     const rate = rates[i % rates.length];
     for (const t of TIERS) {
       const o = offer(purchase, t.id, rate);
-      rows.push([purchase.toFixed(2), String(rate), t.id, o.price.toFixed(2), o.loss.toFixed(2)].join(";"));
+      rows.push([purchase.toFixed(2), String(rate), t.id, o.price.toFixed(2), o.loss.toFixed(2), o.back.toFixed(2)].join(";"));
     }
   }
   const py = `
 import sys
 sys.path.insert(0, "bot")
 from decimal import Decimal as D
-from pricing import TIER_BY_ID, tier_price, real_loss
+from pricing import TIER_BY_ID, tier_price, real_loss, payback
 bad = 0
 for line in sys.stdin:
-    purchase, rate, tid, jp, jl = line.strip().split(";")
+    purchase, rate, tid, jp, jl, jb = line.strip().split(";")
     p = tier_price(D(purchase), TIER_BY_ID[tid]); l = real_loss(D(purchase), p, D(rate))
-    if f"{p:.2f}" != jp or f"{l:.2f}" != jl: bad += 1
+    b = payback(D(purchase), p, D(rate))
+    if f"{p:.2f}" != jp or f"{l:.2f}" != jl or f"{b:.2f}" != jb: bad += 1
 print(bad)`;
   const out = execFileSync("bot/.venv/bin/python", ["-c", py], { input: rows.join("\n") }).toString().trim();
   assert.equal(out, "0", `${out} Abweichungen bei ${rows.length} Fällen`);

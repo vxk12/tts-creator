@@ -33,7 +33,7 @@ export function Hero() {
             wird Geld.
           </motion.h1>
           <motion.p {...item(2)} className="mt-6 max-w-[34rem] text-lg leading-relaxed text-fg-muted">
-            Registrieren, Telegram verbinden, Link schicken. Du bekommst drei Preisvorschläge und siehst deinen echten Verlust nach Steuer.
+            Registrieren, Telegram verbinden, Link schicken. Du bekommst drei Preisvorschläge und siehst, was nach Steuer bei dir ankommt.
           </motion.p>
           <motion.div {...item(3)} className="mt-9 flex flex-wrap gap-3">
             <ButtonLink href="/registrieren" size="lg">

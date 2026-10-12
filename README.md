@@ -7,10 +7,10 @@ Der frühere statische Stand (Editorial-Design, Marktplatz) ist als Git-Tag `v1-
 
 | Bereich | Route | Zweck |
 |---|---|---|
-| Startseite | `/` | Ablauf, echter Verlust nach Steuer, Preisrechner, FAQ |
+| Startseite | `/` | Ablauf, was nach Steuer zurückkommt, Preisrechner, FAQ |
 | Registrierung | `/registrieren` | Shop-Creator-Check → TikTok-Username (Spalte B) → Grenzsteuersatz (Spalte C) → Creator-Key + „Mit Telegram verbinden“ |
 | Dashboard: Samples | `/dashboard` | Samples verwalten: Filter, Suche, Preisstufe ändern, als verkauft markieren, Upload im Browser |
-| Dashboard: Steuer | `/dashboard/steuer` | Jahresübersicht (Warenwert, Erlöse, echter Verlust, Rechnungen), CSV-Export, Hinweise |
+| Dashboard: Steuer | `/dashboard/steuer` | Jahresübersicht (Warenwert, Erlöse, zurück nach Steuer, Rechnungen), CSV-Export, Hinweise |
 | | `/dashboard/steuer/rechnungen` | Rechnungen erstellen (fortlaufende Nummer, § 19 UStG oder 19 %/7 % USt), Drucken bzw. PDF |
 | | `/dashboard/steuer/daten` | Grenzsteuersatz und Rechnungsdaten (Absender, Steuernummer, Kleinunternehmer) |
 | Dashboard: Konto | `/dashboard/konto` | Telegram verbinden, Creator-Key, Abmelden |
@@ -34,7 +34,8 @@ npm test           # Preislogik inkl. Abgleich mit dem Bot (bot/pricing.py)
 
 **Preisstufen:** Verkaufspreis = Einkaufspreis × Faktor (Fair 0,70 · Schnell 0,55 · Sofort weg 0,40)
 
-**Echter Verlust nach Steuer** = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz). Beispiel 27 € bei 30 %: Fair 18,90 € → Verlust 5,67 €.
+**Zurück nach Steuer** (wird überall angezeigt) = Verkaufspreis + Steuervorteil = Einkaufspreis − echter Verlust.
+Echter Verlust = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz). Beispiel 27 € bei 30 %: Fair 18,90 € → Verlust 5,67 € → zurück 21,33 € (79 %).
 
 Die Logik steht an drei Stellen und muss gleich bleiben: `lib/pricing.ts`, `bot/pricing.py`, `backend/Code.gs` (CONFIG.TIERS + Formel in Spalte H). `npm test` prüft Website und Bot über 9.000 Fälle auf cent-genaue Gleichheit.
 
@@ -120,7 +121,7 @@ Das Repo ist mit Vercel verbunden; jeder Push auf `main` wird automatisch gebaut
 
 ```
 app/                    Seiten (/, /registrieren, /dashboard), Layout, globale Styles
-components/landing/     Hero, Ablauf (Bento), Verlust-Statement, Preisrechner, FAQ, CTA
+components/landing/     Hero, Ablauf (Bento), Zurück-Statement, Preisrechner, FAQ, CTA
 components/onboarding/  Registrierungs-Assistent
 components/dashboard/   Dashboard (Login, Telegram, Steuersatz, Samples, Upload)
 components/pricing/     Steuersatz-Auswahl, Preisstufen, animierte Beträge

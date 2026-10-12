@@ -18,7 +18,7 @@ const EMPTY: TaxProfile = { name: "", street: "", zip: "", city: "", email: "", 
 export function TaxSettings() {
   return (
     <div>
-      <PageHead title="Steuerdaten" text="Dein Steuersatz für die Verlust-Rechnung und deine Angaben für Rechnungen." />
+      <PageHead title="Steuerdaten" text="Dein Steuersatz für die Preisrechnung und deine Angaben für Rechnungen." />
       <div className="mt-8 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <RatePanel />
         <ProfilePanel />
@@ -53,7 +53,7 @@ function RatePanel() {
     <form onSubmit={save} noValidate aria-labelledby="rate-title" className="h-full rounded-card border border-white/[0.07] bg-ink-900 p-6 sm:p-8">
       <h2 id="rate-title" className="text-xl font-semibold tracking-tight">Grenzsteuersatz</h2>
       <p className="mt-2 leading-relaxed text-fg-muted">
-        Aktuell <span className="font-medium text-fg">{fmtPct(creator.statusCode)}</span>. Daraus berechnen Bot und Web-App deinen echten Verlust.
+        Aktuell <span className="font-medium text-fg">{fmtPct(creator.statusCode)}</span>. Daraus berechnen Bot und Web-App, wie viel du nach Steuer zurückbekommst.
       </p>
       <div className="mt-6">
         <RateSelector value={state} onChange={(s) => { setState(s); setMsg(null); }} idPrefix="dash" showQuestion={false} />

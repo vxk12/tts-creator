@@ -2,7 +2,7 @@
 
 import { TIERS, fmtEUR, offer, type TierId } from "@/lib/pricing";
 
-/** Drei Preisstufen als Auswahl-Zeilen mit Preis und echtem Verlust. */
+/** Drei Preisstufen als Auswahl-Zeilen mit Preis und dem, was nach Steuer zurückkommt. */
 export function TierList({
   purchase,
   rate,
@@ -51,7 +51,7 @@ export function TierList({
               <span className={`block text-xl font-semibold tracking-tight tabular sm:text-2xl ${selected ? "text-fg" : "text-fg/90"}`}>
                 {o ? fmtEUR(o.price) : "-"}
               </span>
-              <span className="block text-xs text-fg-muted tabular">{o ? `Verlust ${fmtEUR(o.loss)}` : " "}</span>
+              <span className="block text-xs text-fg-muted tabular">{o ? `Zurück ${fmtEUR(o.back)}` : " "}</span>
             </span>
           </button>
         );
