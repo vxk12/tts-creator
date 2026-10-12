@@ -1,6 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Calculator, Percent } from "@phosphor-icons/react";
+import { ChoiceTile } from "@/components/ui/ChoiceTile";
 import { BRACKETS, MAX_RATE_PERCENT, fmtPct, parseRatePercent } from "@/lib/pricing";
 
 export interface RateState {
@@ -18,7 +20,7 @@ export function rateFromState(s: RateState): number | null {
 }
 
 export function rateError(s: RateState): string {
-  if (s.knows === null) return "Bitte wähle JA oder NEIN.";
+  if (s.knows === null) return "Bitte wähle Ja oder Nein.";
   if (s.knows && parseRatePercent(s.percent) === null) return `Bitte gib deinen Grenzsteuersatz in Prozent ein (0 bis ${MAX_RATE_PERCENT}).`;
   if (!s.knows && s.bracket === null) return "Bitte wähle dein geschätztes Gesamteinkommen.";
   return "";
@@ -31,14 +33,9 @@ export function stateFromRate(rate: number): RateState {
     : { knows: true, percent: String(Math.round(rate * 10000) / 100).replace(".", ","), bracket: null };
 }
 
-const choice = (active: boolean) =>
-  `h-14 rounded-xl border text-base font-medium transition-colors duration-200 active:scale-[0.99] ${
-    active ? "border-neon/70 bg-neon/[0.07] text-neon" : "border-white/10 text-fg hover:border-white/30"
-  }`;
-
 /**
  * Steuer-Abfrage aus dem Onboarding:
- * JA → Eingabe in % (gespeichert als Dezimalzahl, 35 → 0.35) · NEIN → drei Einkommens-Stufen.
+ * Ja → Eingabe in % (gespeichert als Dezimalzahl, 35 → 0.35) · Nein → drei Einkommens-Stufen.
  */
 export function RateSelector({
   value,
@@ -62,13 +59,9 @@ export function RateSelector({
           Kennst du deinen exakten Grenzsteuersatz?
         </p>
       ) : null}
-      <div role="group" aria-label="Kennst du deinen exakten Grenzsteuersatz?" className={`grid grid-cols-2 gap-2 ${showQuestion ? "mt-3" : ""}`}>
-        <button type="button" aria-pressed={value.knows === true} className={choice(value.knows === true)} onClick={() => onChange({ ...value, knows: true })}>
-          JA
-        </button>
-        <button type="button" aria-pressed={value.knows === false} className={choice(value.knows === false)} onClick={() => onChange({ ...value, knows: false })}>
-          NEIN
-        </button>
+      <div role="group" aria-label="Kennst du deinen exakten Grenzsteuersatz?" className={`grid gap-2 sm:grid-cols-2 ${showQuestion ? "mt-3" : ""}`}>
+        <ChoiceTile active={value.knows === true} onClick={() => onChange({ ...value, knows: true })} icon={Percent} title="Ja, ich kenne ihn" text="Exakten Satz eingeben" />
+        <ChoiceTile active={value.knows === false} onClick={() => onChange({ ...value, knows: false })} icon={Calculator} title="Nein, schätzen" text="Über dein Einkommen" />
       </div>
 
       <AnimatePresence mode="wait" initial={false}>
@@ -77,7 +70,7 @@ export function RateSelector({
             <label htmlFor={`${idPrefix}-pct`} className="text-sm font-medium text-fg">
               Dein Grenzsteuersatz
             </label>
-            <div className={`mt-2 flex max-w-[14rem] items-baseline gap-2 border-b pb-1 transition-colors focus-within:border-neon ${invalid ? "border-danger" : "border-white/20"}`}>
+            <div className={`mt-2 flex h-16 max-w-[16rem] items-center gap-2 rounded-xl border bg-ink-900 px-4 transition-colors focus-within:border-neon ${invalid ? "border-danger" : "border-white/[0.12]"}`}>
               <input
                 id={`${idPrefix}-pct`}
                 inputMode="decimal"
@@ -87,35 +80,21 @@ export function RateSelector({
                 onChange={(e) => onChange({ ...value, percent: e.target.value })}
                 aria-invalid={invalid}
                 aria-describedby={`${idPrefix}-pct-help`}
-                className="w-0 flex-1 bg-transparent text-4xl font-semibold tracking-tight text-fg tabular outline-none placeholder:text-fg-subtle/60"
+                className="w-0 flex-1 bg-transparent text-3xl font-semibold tracking-tight text-fg tabular outline-none placeholder:text-fg-subtle/60"
               />
               <span className="text-2xl text-fg-subtle">%</span>
             </div>
             <p id={`${idPrefix}-pct-help`} className={`mt-2 text-xs ${invalid ? "text-danger" : "text-fg-subtle"}`}>
-              {invalid ? `Bitte einen Wert zwischen 0 und ${MAX_RATE_PERCENT} eingeben.` : "In Prozent. Gespeichert wird die Dezimalzahl (35 % → 0.35)."}
+              {invalid ? `Bitte einen Wert zwischen 0 und ${MAX_RATE_PERCENT} eingeben.` : "In Prozent, steht in deinem letzten Steuerbescheid."}
             </p>
           </motion.div>
         ) : value.knows === false ? (
           <motion.fieldset key="brackets" {...anim} transition={{ duration: 0.25 }} className="mt-6">
             <legend className="text-sm font-medium text-fg">Geschätztes Gesamteinkommen</legend>
             <div className="mt-2 grid gap-2">
-              {BRACKETS.map((b) => {
-                const active = value.bracket === b.code;
-                return (
-                  <button
-                    key={b.code}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => onChange({ ...value, bracket: b.code })}
-                    className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3.5 text-left text-sm transition-colors duration-200 active:scale-[0.99] ${
-                      active ? "border-neon/70 bg-neon/[0.07] text-neon" : "border-white/10 text-fg hover:border-white/30"
-                    }`}
-                  >
-                    <span className="font-medium">{b.label}</span>
-                    <span className={`shrink-0 text-xs tabular ${active ? "text-neon" : "text-fg-subtle"}`}>ca. {fmtPct(b.code)}</span>
-                  </button>
-                );
-              })}
+              {BRACKETS.map((b) => (
+                <ChoiceTile key={b.code} active={value.bracket === b.code} onClick={() => onChange({ ...value, bracket: b.code })} title={b.label} aside={`ca. ${fmtPct(b.code)}`} />
+              ))}
             </div>
           </motion.fieldset>
         ) : null}

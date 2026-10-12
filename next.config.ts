@@ -8,9 +8,9 @@ const nextConfig: NextConfig = {
       { source: "/index.html", destination: "/", permanent: true },
       { source: "/creator.html", destination: "/registrieren", permanent: true },
       { source: "/dashboard.html", destination: "/dashboard", permanent: true },
-      { source: "/marktplatz.html", destination: "/", permanent: false },
-      { source: "/shop.html", destination: "/", permanent: false },
-      { source: "/product.html", destination: "/", permanent: false },
+      { source: "/marktplatz.html", destination: "/marketplace", permanent: false },
+      { source: "/shop.html", destination: "/marketplace", permanent: false },
+      { source: "/product.html", destination: "/marketplace", permanent: false },
     ];
   },
 };

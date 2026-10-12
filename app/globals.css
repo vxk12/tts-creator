@@ -17,6 +17,7 @@
   --color-neon: #00ff66;
   --color-neon-soft: #5cff9a;
   --color-neon-ink: #03140a;
+  --color-neon-deep: #0e6b38;
   --color-danger: #ff6b6b;
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;

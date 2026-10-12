@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Nav } from "@/components/ui/Nav";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 
 export const metadata: Metadata = {
@@ -7,13 +6,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+// Fokus-Modus: eigene Kopfzeile mit Fortschritt statt der Hauptnavigation
 export default function RegisterPage() {
-  return (
-    <>
-      <Nav />
-      <main>
-        <Onboarding />
-      </main>
-    </>
-  );
+  return <Onboarding />;
 }
