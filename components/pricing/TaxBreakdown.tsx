@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useLayoutEffect, useState } from "react";
+import { motion, useAnimate, useReducedMotion } from "motion/react";
 import { TIERS, fmtEUR, fmtPct, offer, type TierId } from "@/lib/pricing";
 import { AnimatedEuro } from "./AnimatedEuro";
-
-const SPRING = { type: "spring", stiffness: 140, damping: 22 } as const;
 
 /**
  * Beispielrechnung für ein Sample: Wohin gehen die Euro des Einkaufspreises?
@@ -15,7 +13,16 @@ export function TaxBreakdown({ rate, purchase = 27 }: { rate: number; purchase?:
   const reduce = useReducedMotion();
   const [tierId, setTierId] = useState<TierId>("fair");
   const o = offer(purchase, tierId, rate);
-  const transition = reduce ? { duration: 0 } : SPRING;
+  const [bar, animateBar] = useAnimate<HTMLDivElement>();
+
+  // Bei jeder neuen Rechnung füllt sich der Balken von links nach rechts.
+  // Imperativ, weil AnimatePresence initial={false} (Onboarding) deklarative Start-Animationen unterdrückt.
+  // Layout-Effekt + Startwert setzen, damit der Balken nicht einen Frame lang voll aufblitzt.
+  useLayoutEffect(() => {
+    if (reduce || !bar.current) return;
+    bar.current.style.transform = "scaleX(0)";
+    animateBar(bar.current, { scaleX: [0, 1] }, { duration: 0.7, ease: [0.16, 1, 0.3, 1] });
+  }, [tierId, rate, reduce, bar, animateBar]);
 
   return (
     <div className="rounded-card border border-white/[0.08] bg-ink-900 p-5 sm:p-6">
@@ -43,15 +50,12 @@ export function TaxBreakdown({ rate, purchase = 27 }: { rate: number; purchase?:
         })}
       </div>
 
-      {/* Ebenen von unten: echter Verlust (voll), Steuervorteil, Verkaufspreis. Nur transform wird animiert. */}
-      <div className="relative mt-6 h-3 overflow-hidden rounded-full bg-neon" aria-hidden="true">
-        <motion.div
-          className="absolute inset-0 origin-left bg-neon-deep"
-          initial={false}
-          animate={{ scaleX: (o.price + o.taxSaving) / o.purchase }}
-          transition={transition}
-        />
-        <motion.div className="absolute inset-0 origin-left bg-ink-700" initial={false} animate={{ scaleX: o.price / o.purchase }} transition={transition} />
+      <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/[0.06]" aria-hidden="true">
+        <div ref={bar} className="flex h-full origin-left">
+          <span className="bg-ink-700" style={{ width: `${(o.price / o.purchase) * 100}%` }} />
+          <span className="bg-neon-deep" style={{ width: `${(o.taxSaving / o.purchase) * 100}%` }} />
+          <span className="flex-1 bg-neon" />
+        </div>
       </div>
 
       <dl className="mt-5 grid grid-cols-[1fr_auto] gap-x-6 gap-y-3 text-sm" aria-live="polite">
