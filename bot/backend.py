@@ -37,13 +37,14 @@ class Credentials:
 class NewSample:
     shop_link: str
     purchase: Decimal         # Einkaufspreis (Spalte F)
-    tier: str                 # fair | schnell | sofort
+    tier: str                 # fair | schnell | sofort (Vorschläge) | eigen
     video_link: str
     name: str
     description: str
     category: str
     image: str
     shop_price: Decimal
+    sale_price: Decimal | None = None  # nur bei tier == "eigen"
 
 
 class Backend(Protocol):
@@ -72,6 +73,7 @@ def _sample_payload(sample: NewSample) -> dict[str, Any]:
         "image": sample.image,
         "shopPrice": float(sample.shop_price),
         "source": "telegram",
+        **({"salePrice": float(sample.sale_price)} if sample.sale_price is not None else {}),
     }
 
 
@@ -143,7 +145,7 @@ class DemoBackend:
             "userId": user_id,
             "statusCode": c["statusCode"],
             **_sample_payload(sample),
-            "salePrice": float(tier_price(sample.purchase, TIER_BY_ID[sample.tier])),
+            "salePrice": float(sample.sale_price if sample.sale_price is not None else tier_price(sample.purchase, TIER_BY_ID[sample.tier])),
             "createdAt": datetime.now(timezone.utc).isoformat(),
         }
         data["products"].append(product)

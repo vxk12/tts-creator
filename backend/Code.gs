@@ -23,6 +23,8 @@ const CONFIG = {
   CATEGORIES: ['Tech', 'Beauty', 'Haushalt', 'Sonstiges'],
   THUMB_CACHE_SECONDS: 21600, // 6 Stunden
   VAT_RATES: [0, 0.07, 0.19],
+  // Eigener Preis statt Vorschlag: Verkaufspreis steht dann als Wert in Spalte H (keine Formel, kein Faktor)
+  CUSTOM_TIER: { id: 'eigen', label: 'Eigener Preis' },
   SALE_STATUS: { verfuegbar: 'Verfügbar', verkauft: 'Verkauft' },
 };
 
@@ -126,8 +128,10 @@ function addProduct_(body) {
   const shopLink = parseUrl_(body.shopLink, 'TikTok Shop Produkt-Link');
   const videoLink = body.videoLink ? parseUrl_(body.videoLink, 'TikTok-Video-Link') : '';
   const tierId = String(body.tier || '');
-  const tier = CONFIG.TIERS[tierId];
-  if (!tier) throw new Error('Bitte wähle eine Preisstufe (Fair, Schnell oder Sofort weg).');
+  const custom = tierId === CONFIG.CUSTOM_TIER.id;
+  const tier = custom ? { label: CONFIG.CUSTOM_TIER.label, factor: '' } : CONFIG.TIERS[tierId];
+  if (!tier) throw new Error('Bitte wähle eine Preisstufe oder gib einen eigenen Preis ein.');
+  const salePrice = custom ? parseSalePrice_(body.salePrice) : null;
   const price = Number(String(body.price || '').replace(',', '.'));
   if (!isFinite(price) || price <= 0 || price > 100000) {
     throw new Error('Bitte gib den Einkaufspreis als Zahl ein (z. B. 27.90).');
@@ -163,7 +167,7 @@ function addProduct_(body) {
 
     sheet.getRange(row, P.ID).setNumberFormat('@');
     sheet.getRange(row, 1, 1, values.length).setValues([values]);
-    sheet.getRange(row, P.SALE).setFormula(CONFIG.PRICE_FORMULA.replace(/\{r\}/g, row));
+    setSalePrice_(sheet, row, salePrice);
     SpreadsheetApp.flush();
 
     const sale = sheet.getRange(row, P.SALE).getValue();
@@ -210,9 +214,11 @@ function updateSample_(body) {
     const sheet = productsSheet_();
     const row = findProductRow_(sheet, id, creator.userId);
     if (body.tier !== undefined) {
-      const tier = CONFIG.TIERS[String(body.tier)];
-      if (!tier) throw new Error('Bitte wähle eine Preisstufe (Fair, Schnell oder Sofort weg).');
+      const custom = String(body.tier) === CONFIG.CUSTOM_TIER.id;
+      const tier = custom ? { label: CONFIG.CUSTOM_TIER.label, factor: '' } : CONFIG.TIERS[String(body.tier)];
+      if (!tier) throw new Error('Bitte wähle eine Preisstufe oder gib einen eigenen Preis ein.');
       sheet.getRange(row, P.TIER, 1, 2).setValues([[tier.label, tier.factor]]);
+      setSalePrice_(sheet, row, custom ? parseSalePrice_(body.salePrice) : null);
     }
     if (body.status === 'verkauft') {
       SpreadsheetApp.flush();
@@ -493,6 +499,19 @@ function ensureSheets_() {
     inv.getRange(1, 1, 1, I_HEADERS.length).setValues([I_HEADERS]).setFontWeight('bold');
     inv.setFrozenRows(1);
   }
+}
+
+/** Spalte H: eigener Preis als Wert, sonst die Formel Einkaufspreis × Faktor. */
+function setSalePrice_(sheet, row, salePrice) {
+  const cell = sheet.getRange(row, P.SALE);
+  if (salePrice === null) cell.setFormula(CONFIG.PRICE_FORMULA.replace(/\{r\}/g, row));
+  else cell.setValue(salePrice);
+}
+
+function parseSalePrice_(v) {
+  const n = parseMoney_(v, 'deinen Verkaufspreis');
+  if (!(n > 0)) throw new Error('Bitte gib deinen Verkaufspreis als Zahl über 0 ein (z. B. 19.90).');
+  return n;
 }
 
 function invoicesSheet_() {

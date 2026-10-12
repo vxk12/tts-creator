@@ -12,6 +12,9 @@
  */
 
 export type TierId = "fair" | "schnell" | "sofort";
+/** Vorschlag (Stufe) oder eigener Preis */
+export type PriceChoice = TierId | "eigen";
+export const CUSTOM_LABEL = "Eigener Preis";
 
 export interface Tier {
   id: TierId;

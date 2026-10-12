@@ -10,12 +10,12 @@ Der frühere statische Stand (Editorial-Design, Marktplatz) ist als Git-Tag `v1-
 |---|---|---|
 | Startseite | `/` | Upload-Ablauf, Steuer-Extra (Preisrechner), FAQ |
 | Registrierung | `/registrieren` | Shop-Creator-Check → TikTok-Username (Spalte B) → Grenzsteuersatz (Spalte C, optional: „Später festlegen“ lässt die Zelle leer) → Creator-Key + „Mit Telegram verbinden“ |
-| Dashboard: Samples | `/dashboard` | Samples verwalten: Filter, Suche, Preisstufe ändern, als verkauft markieren, Upload im Browser |
+| Dashboard: Samples | `/dashboard` | Samples verwalten: Filter, Suche, Preis ändern (Vorschlag oder eigener Preis), als verkauft markieren, Upload im Browser |
 | Dashboard: Steuer | `/dashboard/steuer` | Jahresübersicht (Warenwert, Erlöse, zurück nach Steuer, Rechnungen), CSV-Export, Hinweise |
 | | `/dashboard/steuer/rechnungen` | Rechnungen erstellen (fortlaufende Nummer, § 19 UStG oder 19 %/7 % USt), Drucken bzw. PDF |
 | | `/dashboard/steuer/daten` | Grenzsteuersatz und Rechnungsdaten (Absender, Steuernummer, Kleinunternehmer) |
 | Dashboard: Konto | `/dashboard/konto` | Telegram verbinden, Creator-Key, Abmelden |
-| Telegram-Bot | `bot/` | Login mit Web-App-Zugangsdaten, Upload: TikTok-Shop-Link → Einkaufspreis → Preisstufe. Siehe [bot/README.md](bot/README.md) |
+| Telegram-Bot | `bot/` | Login mit Web-App-Zugangsdaten, Upload: TikTok-Shop-Link → Einkaufspreis → Preisvorschlag oder eigener Preis. Siehe [bot/README.md](bot/README.md) |
 | Backend | `backend/Code.gs` | Google Apps Script als API zum Google Sheet |
 
 Alte Adressen (`creator.html`, `dashboard.html`, …) werden per Redirect auf die neuen Routen weitergeleitet.
@@ -33,7 +33,7 @@ npm test           # Preislogik inkl. Abgleich mit dem Bot (bot/pricing.py)
 
 **Steuersatz** (Status_Code, Spalte C, optional; leer = nicht festgelegt): exakt in % oder geschätzt über das Einkommen (unter 12.300 € → 0.00, 15.000 bis 60.000 € → 0.30, über 66.000 € → 0.42). Jederzeit im Dashboard änderbar.
 
-**Preisstufen:** Verkaufspreis = Einkaufspreis × Faktor (Fair 0,70 · Schnell 0,55 · Sofort weg 0,40)
+**Preisvorschläge:** Verkaufspreis = Einkaufspreis × Faktor (Fair 0,70 · Schnell 0,55 · Sofort weg 0,40). Alternativ **eigener Preis** (`tier: "eigen"` + `salePrice`): Spalte M = „Eigener Preis“, N leer, H enthält den Preis als Wert statt der Formel.
 
 Angezeigt wird (nur mit Steuersatz): **„18,90 € sofort vom Käufer + 2,43 € später mit der Steuererklärung“**, also Verkaufspreis + Steuervorteil = Einkaufspreis − echter Verlust.
 Echter Verlust = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz). Beispiel 27 € bei 30 %: Fair 18,90 € → Verlust 5,67 € → zurück 21,33 € (79 %).
@@ -60,7 +60,7 @@ Die Logik steht an drei Stellen und muss gleich bleiben: `lib/pricing.ts`, `bot/
 | J | Kategorie (Tech / Beauty / Haushalt / Sonstiges) | optional im Dashboard |
 | K | Erstellt_Am | automatisch |
 | L | Beschreibung | optional / Beta-Katalog |
-| M | Preisstufe (Fair / Schnell / Sofort weg) | Bot oder Dashboard |
+| M | Preisstufe (Fair / Schnell / Sofort weg / Eigener Preis) | Bot oder Dashboard |
 | N | Preisfaktor (0.70 / 0.55 / 0.40) – Spalte H = F × N | automatisch |
 | O | Quelle (Telegram / Web) | automatisch |
 | P | Bild_URL | Beta-Katalog |

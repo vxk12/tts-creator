@@ -3,7 +3,7 @@
  * Ohne API_URL läuft alles im Demo-Modus: Daten liegen nur im localStorage dieses Browsers.
  */
 import { API_URL, DEMO, TELEGRAM_BOT } from "./config";
-import { tierPrice, tier as tierOf, type TierId } from "./pricing";
+import { CUSTOM_LABEL, tierPrice, tier as tierOf, type PriceChoice, type TierId } from "./pricing";
 import { invoiceTotals } from "./invoice";
 
 export interface Creator {
@@ -39,7 +39,9 @@ export interface Sample {
 export type SampleStatus = "verfuegbar" | "verkauft";
 
 export interface SampleUpdate {
-  tier?: TierId;
+  tier?: PriceChoice;
+  /** nur bei tier "eigen" */
+  salePrice?: number;
   status?: SampleStatus;
   soldPrice?: number;
   soldAt?: string; // yyyy-mm-dd
@@ -101,7 +103,9 @@ export interface NewInvoice {
 export interface NewSample {
   shopLink: string;
   price: number;
-  tier: TierId;
+  tier: PriceChoice;
+  /** Verkaufspreis, nur bei tier "eigen" */
+  salePrice?: number;
   videoLink?: string;
   name?: string;
   description?: string;
@@ -236,10 +240,10 @@ export async function addSample(creds: Credentials, s: NewSample) {
     id: "local-" + Date.now(),
     userId: c.userId,
     name: s.name || "",
-    price: tierPrice(s.price, s.tier),
+    price: s.tier === "eigen" ? s.salePrice ?? 0 : tierPrice(s.price, s.tier),
     purchasePrice: s.price,
     originalPrice: s.price,
-    tier: tierOf(s.tier).label,
+    tier: s.tier === "eigen" ? CUSTOM_LABEL : tierOf(s.tier).label,
     source: "Web",
     createdAt: new Date().toISOString(),
   };
@@ -273,10 +277,8 @@ export async function updateSample(creds: Credentials, id: string, change: Sampl
   const all = demo.samples();
   const s = all.find((x) => x.id === id);
   if (!s) throw new Error("Sample nicht gefunden.");
-  if (change.tier) {
-    s.tier = tierOf(change.tier).label;
-    s.price = tierPrice(s.purchasePrice ?? 0, change.tier);
-  }
+  if (change.tier === "eigen") Object.assign(s, { tier: CUSTOM_LABEL, price: change.salePrice ?? s.price });
+  else if (change.tier) Object.assign(s, { tier: tierOf(change.tier).label, price: tierPrice(s.purchasePrice ?? 0, change.tier) });
   if (change.status === "verkauft") Object.assign(s, { status: "verkauft", soldAt: change.soldAt ?? today(), soldPrice: change.soldPrice ?? s.price });
   if (change.status === "verfuegbar") Object.assign(s, { status: "verfuegbar", soldAt: "", soldPrice: null });
   store.set("tts_demo_samples", all);

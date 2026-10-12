@@ -3,7 +3,7 @@
 Ablauf:
   1. /start (aus der Web-App: Deep-Link mit Username) → einmalig mit Creator-Key anmelden
   2. TikTok-Shop-Link schicken → Beta-Produktdaten
-  3. Einkaufspreis → drei Preisstufen (mit Steuersatz: was später über die Steuer dazukommt)
+  3. Einkaufspreis → drei Preisvorschläge oder eigener Preis (mit Steuersatz: was später über die Steuer dazukommt)
   4. optional Video-Link → fertige Listing-Vorschau → „In meine Web-App hochladen“
 
 Start:  .venv/bin/python main.py
@@ -45,6 +45,7 @@ warnings.filterwarnings("ignore", message=r".*per_message=False.*", category=PTB
 
 USER_RE = re.compile(r"^[A-Za-z0-9._]{2,24}$")
 LOGIN_USER, LOGIN_KEY, UP_LINK, UP_PRICE, UP_TIER, UP_VIDEO, UP_CONFIRM = range(7)
+CUSTOM = "eigen"  # eigener Preis statt Vorschlag (wie CONFIG.CUSTOM_TIER in backend/Code.gs)
 CONDITION = "Wie neu – nur 1x für Video ausgepackt"
 DISCLAIMER = "Schätzung auf Basis deines Steuersatzes – keine Steuerberatung."
 esc = html.escape
@@ -306,7 +307,7 @@ async def show_tiers(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     draft = ctx.user_data["draft"]
     purchase: Decimal = draft["purchase"]
     rate: Decimal | None = draft["session"].status_code
-    lines = [f"💶 Einkaufspreis: <b>{fmt_eur(purchase)}</b>", ""]
+    lines = [f"💶 Einkaufspreis: <b>{fmt_eur(purchase)}</b>", "", "<b>Preisvorschläge</b>"]
     buttons = []
     any_extra = False
     for tier in TIERS:
@@ -320,7 +321,8 @@ async def show_tiers(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         buttons.append([InlineKeyboardButton(f"{tier.emoji} {tier.label} · {fmt_eur(price)}", callback_data=f"tier:{tier.id}")])
     if any_extra:
         lines += ["", f"<i>Der Steuerteil kommt mit deiner Steuererklärung, ohne bleibt es beim Verkaufspreis. {DISCLAIMER}</i>"]
-    lines += ["", "Welche Preisstufe nimmst du?"]
+    lines += ["", "Nimm einen Vorschlag oder schick mir einfach deinen eigenen Preis."]
+    buttons.append([InlineKeyboardButton("✏️ Eigenen Preis eingeben", callback_data="tier:eigen")])
     await say(update, "\n".join(lines), buttons + [CANCEL_ROW])
     return UP_TIER
 
@@ -328,11 +330,29 @@ async def show_tiers(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 async def up_tier(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await close_buttons(update)
     tier_id = update.callback_query.data.split(":", 1)[1]
+    if tier_id == CUSTOM:
+        await say(update, "✏️ Schick mir deinen Verkaufspreis, z. B. <code>19,90</code>.", [CANCEL_ROW])
+        return UP_TIER
     if tier_id not in TIER_BY_ID:
         return UP_TIER
     draft = ctx.user_data["draft"]
+    return await set_price(update, ctx, tier_id, tier_price(draft["purchase"], TIER_BY_ID[tier_id]))
+
+
+async def up_custom_price(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Eigener Preis: einfach als Nachricht schicken, statt einen Vorschlag zu wählen."""
+    price = parse_money(update.message.text or "")
+    if price is None:
+        await say(update, "Bitte schick deinen Verkaufspreis als Zahl, z. B. <code>19,90</code>, oder wähle einen Vorschlag.", [CANCEL_ROW])
+        return UP_TIER
+    return await set_price(update, ctx, CUSTOM, price)
+
+
+async def set_price(update: Update, ctx: ContextTypes.DEFAULT_TYPE, tier_id: str, price: Decimal) -> int:
+    draft = ctx.user_data["draft"]
     draft["tier"] = tier_id
-    if "video" in draft:            # „Preisstufe ändern“ aus der Vorschau
+    draft["price"] = price
+    if "video" in draft:            # „Preis ändern“ aus der Vorschau
         return await show_preview(update, ctx)
     await say(
         update,
@@ -362,14 +382,14 @@ async def show_preview(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     draft = ctx.user_data["draft"]
     product: Product = draft["product"]
     session: Session = draft["session"]
-    tier = TIER_BY_ID[draft["tier"]]
-    price = tier_price(draft["purchase"], tier)
+    price: Decimal = draft["price"]
+    label = f"Stufe {TIER_BY_ID[draft['tier']].label}" if draft["tier"] in TIER_BY_ID else "Eigener Preis"
     extra = tax_extra(draft["purchase"], price, session.status_code)
     video = f'<a href="{esc(draft["video"])}">ansehen</a>' if draft["video"] else "folgt"
     caption = (
         "📝 <b>Deine Anzeige</b>\n\n"
         f"<b>{esc(product.name)}</b>\n"
-        f"💶 <b>{fmt_eur(price)}</b> statt <s>{fmt_eur(product.shop_price)}</s> · Stufe {tier.label}\n"
+        f"💶 <b>{fmt_eur(price)}</b> statt <s>{fmt_eur(product.shop_price)}</s> · {label}\n"
         f"✨ Zustand: {CONDITION}\n"
         f"🎬 Video-Nachweis: {video}\n"
         f"👤 von @{esc(session.user_id)}"
@@ -378,7 +398,7 @@ async def show_preview(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         caption += f"\n\n💚 + <b>{fmt_eur(extra)}</b> später über die Steuer"
     await send_product_photo(update, ctx, product, caption, [
         [InlineKeyboardButton("✅ In meine Web-App hochladen", callback_data="confirm:upload")],
-        [InlineKeyboardButton("💶 Preisstufe ändern", callback_data="confirm:tier"),
+        [InlineKeyboardButton("💶 Preis ändern", callback_data="confirm:tier"),
          InlineKeyboardButton("❌ Verwerfen", callback_data="confirm:discard")],
     ])
     return UP_CONFIRM
@@ -401,6 +421,7 @@ async def up_confirm(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         shop_link=draft["link"], purchase=draft["purchase"], tier=draft["tier"], video_link=draft["video"],
         name=product.name, description=product.description, category=product.category,
         image=product.image, shop_price=product.shop_price,
+        sale_price=draft["price"] if draft["tier"] == CUSTOM else None,
     )
     try:
         result = await backend(ctx).add_sample(Credentials(session.user_id, session.creator_key), sample)
@@ -411,7 +432,7 @@ async def up_confirm(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
     ctx.user_data.pop("draft", None)
     price = result.get("price")
-    price_txt = fmt_eur(Decimal(str(price))) if price is not None else fmt_eur(tier_price(sample.purchase, TIER_BY_ID[sample.tier]))
+    price_txt = fmt_eur(Decimal(str(price)) if price is not None else draft["price"])
     await say(
         update,
         f"🎉 <b>Hochgeladen!</b>\n\n<b>{esc(product.name)}</b> für <b>{price_txt}</b> ist jetzt in deinem Web-App-Konto.",
@@ -498,7 +519,7 @@ async def help_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "ℹ️ <b>So funktioniert's</b>\n\n"
         "1. Schick mir einen TikTok-Shop-Link (oder /neu)\n"
         "2. Gib deinen Einkaufspreis ein\n"
-        "3. Wähle eine Preisstufe\n"
+        "3. Wähle einen Preisvorschlag oder schick deinen eigenen Preis\n"
         "4. Lade das Sample in deine Web-App hoch\n\n"
         "/neu – Sample hochladen\n/menu – Hauptmenü\n/konto – Konto & Steuersatz\n/abbrechen – aktuellen Vorgang abbrechen\n/abmelden – Telegram trennen",
     )
@@ -530,7 +551,7 @@ BOT_DESCRIPTION = (
     "Hier lädst du als TikTok Shop Creator deine Samples in Sekunden hoch:\n\n"
     "📦 TikTok-Shop-Link schicken\n"
     "💶 Einkaufspreis eingeben\n"
-    "✅ Preisstufe wählen, fertig\n\n"
+    "✅ Preis wählen oder selbst festlegen, fertig\n\n"
     "Noch kein Konto? Registriere dich zuerst auf tts-creator-beta.vercel.app/registrieren\n\n"
     "Tippe auf „Start“, um loszulegen."
 )
@@ -587,7 +608,7 @@ def build_app(config: Config, *, backend_impl: Backend | None = None, store_impl
         states={
             UP_LINK: [MessageHandler(text, up_link)],
             UP_PRICE: [MessageHandler(text, up_price), CallbackQueryHandler(up_price_shop, pattern=r"^price:shop$")],
-            UP_TIER: [CallbackQueryHandler(up_tier, pattern=r"^tier:")],
+            UP_TIER: [CallbackQueryHandler(up_tier, pattern=r"^tier:"), MessageHandler(text, up_custom_price)],
             UP_VIDEO: [MessageHandler(text, up_video), CallbackQueryHandler(up_video_skip, pattern=r"^video:skip$")],
             UP_CONFIRM: [CallbackQueryHandler(up_confirm, pattern=r"^confirm:")],
         },

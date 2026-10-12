@@ -7,7 +7,7 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { listInvoices, type Invoice } from "@/lib/api";
 import { fmtEUR, fmtPct, taxBack } from "@/lib/pricing";
-import { downloadCsv, fmtDate } from "@/lib/invoice";
+import { downloadCsv, fmtDate, fmtDay } from "@/lib/invoice";
 import { useDashboard } from "../DashboardShell";
 import { PageHead } from "../ui";
 
@@ -59,7 +59,7 @@ export function TaxOverview() {
         const isSold = s.status === "verkauft";
         const sale = s.soldPrice ?? s.price;
         return [
-          s.name || "TikTok Shop Produkt", s.createdAt ? fmtDate(s.createdAt.slice(0, 10)) : "", s.purchasePrice ?? 0, s.tier,
+          s.name || "TikTok Shop Produkt", s.createdAt ? fmtDay(s.createdAt) : "", s.purchasePrice ?? 0, s.tier,
           isSold ? "Verkauft" : "Verfügbar", isSold && s.soldAt ? fmtDate(s.soldAt) : "", isSold ? sale : "",
           isSold && rate != null ? taxBack(s.purchasePrice ?? 0, sale, rate) : "",
         ];

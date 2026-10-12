@@ -107,7 +107,7 @@ export function PriceCalculator() {
 
         <Reveal delay={0.1}>
           <div className="h-full rounded-card border border-white/[0.07] bg-ink-900 p-3 sm:p-4">
-            <TierList purchase={purchase} rate={rate} value={tierId} onChange={setTierId} name="calc-tier" />
+            <TierList purchase={purchase} rate={rate} value={tierId} onChange={(id) => id !== "eigen" && setTierId(id)} name="calc-tier" />
 
             <div className="px-3 pb-3 pt-7 sm:px-4" aria-live="polite">
               <p className="text-sm text-fg-muted">

@@ -6,9 +6,11 @@
 
 1. **Web-App:** registrieren (Steuersatz wird abgefragt), dann „Mit Telegram verbinden“
 2. **Bot:** einmalig mit TikTok-Username + Creator-Key anmelden (die Nachricht mit dem Key löscht der Bot sofort). Ab dann kennt der Bot Konto und Steuersatz.
-3. **Sample hochladen:** TikTok-Shop-Link schicken → Einkaufspreis eingeben (oder Shop-Preis übernehmen) → Preisstufe wählen → optional Video-Link → Vorschau → **„In meine Web-App hochladen“**
+3. **Sample hochladen:** TikTok-Shop-Link schicken → Einkaufspreis eingeben (oder Shop-Preis übernehmen) → Preisvorschlag wählen oder eigenen Preis schicken → optional Video-Link → Vorschau → **„In meine Web-App hochladen“**
 
-### Preisstufen (vorläufig)
+### Preisvorschläge (vorläufig)
+
+Statt eines Vorschlags kann man jederzeit einfach einen eigenen Preis schicken (oder „✏️ Eigenen Preis eingeben“ tippen).
 
 | Stufe | Verkaufspreis |
 |---|---|

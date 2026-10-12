@@ -8,8 +8,8 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { TierList } from "@/components/pricing/TierList";
 import { addSample, telegramBotLink, today, updateSample, type Sample, type SampleStatus } from "@/lib/api";
-import { TIERS, fmtEUR, parseMoney, taxBack, tierPrice, type TierId } from "@/lib/pricing";
-import { fmtDate } from "@/lib/invoice";
+import { CUSTOM_LABEL, TIERS, fmtEUR, parseMoney, taxBack, tierPrice, type PriceChoice } from "@/lib/pricing";
+import { fmtDate, fmtDay } from "@/lib/invoice";
 import { useDashboard } from "./DashboardShell";
 import { PageHead, inputCls } from "./ui";
 
@@ -21,7 +21,7 @@ const FILTERS: { id: Filter; label: string }[] = [
 ];
 
 const statusOf = (s: Sample): SampleStatus => s.status ?? "verfuegbar";
-const tierIdOf = (label: string): TierId => TIERS.find((t) => t.label === label)?.id ?? "fair";
+const tierIdOf = (label: string): PriceChoice => (label === CUSTOM_LABEL ? "eigen" : TIERS.find((t) => t.label === label)?.id ?? "fair");
 const imageSrc = (img?: string) => (!img ? "" : /^https:\/\//.test(img) ? img : "/" + img.replace(/^assets\//, ""));
 
 export function SamplesView() {
@@ -137,7 +137,7 @@ function SampleRow({ sample: s, open, onToggle }: { sample: Sample; open: boolea
           <span className="mt-0.5 block truncate text-sm text-fg-muted">
             Einkauf {fmtEUR(s.purchasePrice ?? NaN)}
             {s.tier ? `, ${s.tier}` : ""}
-            {s.createdAt ? `, ${fmtDate(s.createdAt.slice(0, 10))}` : ""}
+            {s.createdAt ? `, ${fmtDay(s.createdAt)}` : ""}
           </span>
         </span>
         <span className="flex items-center gap-3">
@@ -179,12 +179,24 @@ function SampleDetail({ sample: s }: { sample: Sample }) {
     try {
       const res = await updateSample(creds, s.id, change);
       patchSample(s.id, res.sample);
+      return true;
     } catch (e) {
       setError((e as Error).message);
+      return false;
     } finally {
       setBusy(false);
     }
   };
+
+  const isCustom = tierIdOf(s.tier) === "eigen";
+  const [customText, setCustomText] = useState("");
+
+  function setCustom(e: FormEvent) {
+    e.preventDefault();
+    const v = parseMoney(customText);
+    if (!(v > 0 && v <= 100000)) return setError("Bitte gib deinen Preis als Zahl ein, z. B. 19,90.");
+    run({ tier: "eigen", salePrice: v }).then((ok) => ok && setCustomText(""));
+  }
 
   const sellPrice = parseMoney(priceText);
   const sellOk = Number.isFinite(sellPrice) && sellPrice >= 0;
@@ -214,7 +226,7 @@ function SampleDetail({ sample: s }: { sample: Sample }) {
           </dl>
         ) : (
           <div>
-            <p className="text-sm font-medium">Preisstufe</p>
+            <p className="text-sm font-medium">Preis ändern</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {TIERS.map((t) => {
                 const active = tierIdOf(s.tier) === t.id;
@@ -233,6 +245,20 @@ function SampleDetail({ sample: s }: { sample: Sample }) {
                 );
               })}
             </div>
+            <form onSubmit={setCustom} noValidate className="mt-2 flex gap-2">
+              <label className="relative min-w-0 flex-1">
+                <span className="sr-only">Eigener Preis in Euro</span>
+                <input
+                  inputMode="decimal"
+                  placeholder={isCustom ? `${CUSTOM_LABEL}: ${fmtEUR(s.price)}` : CUSTOM_LABEL}
+                  value={customText}
+                  onChange={(e) => setCustomText(e.target.value)}
+                  className={`${inputCls} h-10 pr-8 text-sm tabular ${isCustom ? "border-neon/70" : ""}`}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-fg-subtle">€</span>
+              </label>
+              <Button type="submit" variant="secondary" disabled={busy || !customText.trim()}>Übernehmen</Button>
+            </form>
           </div>
         )}
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
@@ -288,7 +314,8 @@ function WebUpload({ onDone }: { onDone: () => void }) {
   const [link, setLink] = useState("");
   const [priceText, setPriceText] = useState("");
   const [video, setVideo] = useState("");
-  const [tierId, setTierId] = useState<TierId>("fair");
+  const [tierId, setTierId] = useState<PriceChoice>("fair");
+  const [customText, setCustomText] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -298,12 +325,14 @@ function WebUpload({ onDone }: { onDone: () => void }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const problems = [!urlOk(link) && "TikTok-Shop-Link", purchase == null && "Einkaufspreis", video.trim() && !urlOk(video) && "Video-Link"].filter(Boolean);
+    const custom = parseMoney(customText);
+    const customBad = tierId === "eigen" && !(custom > 0 && custom <= 100000);
+    const problems = [!urlOk(link) && "TikTok-Shop-Link", purchase == null && "Einkaufspreis", customBad && "eigener Preis", video.trim() && !urlOk(video) && "Video-Link"].filter(Boolean);
     if (problems.length) return setError(`Bitte prüfe: ${problems.join(", ")}.`);
     setBusy(true);
     setError("");
     try {
-      await addSample(creds, { shopLink: link.trim(), price: purchase!, tier: tierId, videoLink: video.trim() || undefined });
+      await addSample(creds, { shopLink: link.trim(), price: purchase!, tier: tierId, salePrice: tierId === "eigen" ? custom : undefined, videoLink: video.trim() || undefined });
       await reloadSamples();
       onDone();
     } catch (ex) {
@@ -341,7 +370,8 @@ function WebUpload({ onDone }: { onDone: () => void }) {
         </div>
       </div>
       <div className="grid content-start gap-4">
-        <TierList purchase={purchase} rate={creator.statusCode} value={tierId} onChange={setTierId} name="up-tier" />
+        <p className="-mb-1 text-sm font-medium">Preisvorschläge oder eigener Preis</p>
+        <TierList purchase={purchase} rate={creator.statusCode} value={tierId} onChange={setTierId} name="up-tier" custom={{ text: customText, onText: setCustomText }} />
         {error ? <Notice tone="error">{error}</Notice> : null}
         <Button type="submit" disabled={busy} className="justify-self-start">{busy ? "Wird hochgeladen …" : "Sample hochladen"}</Button>
       </div>

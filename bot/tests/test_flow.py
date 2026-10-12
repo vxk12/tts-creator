@@ -247,6 +247,31 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("18,90 €", out)
         self.assertNotIn("Steuer", out)
 
+    async def test_custom_price(self):
+        await self.login_demo()
+        await self.text("https://vm.tiktok.com/ZG9A86bGdeaah-ro48Q/")
+        await self.text("27")
+        self.assertIn("tier:eigen", self.tg.buttons() or ["tier:eigen"])
+        out = await self.tap("tier:eigen")
+        self.assertIn("Verkaufspreis", out[0])
+        out = await self.text("abc")
+        self.assertIn("als Zahl", out[0])
+        out = await self.text("19,90")                       # eigener Preis statt Vorschlag
+        self.assertIn("TikTok-Testvideo", out[0])
+        out = await self.tap("video:skip")
+        self.assertIn("19,90 €", out[0])
+        self.assertIn("Eigener Preis", out[0])
+        await self.tap("confirm:upload")
+        product = json.loads(self.demo_file.read_text())["products"][0]
+        self.assertEqual((product["tier"], product["salePrice"]), ("eigen", 19.9))
+
+    async def test_custom_price_typed_directly(self):
+        await self.login_demo()
+        await self.text("https://vm.tiktok.com/ZG9A86bGdeaah-ro48Q/")
+        await self.text("27")
+        out = await self.text("22")                          # ohne Button, direkt getippt
+        self.assertIn("TikTok-Testvideo", out[0])
+
     async def test_upload_requires_login(self):
         out = await self.text("https://vm.tiktok.com/abc/")
         self.assertIn("nicht angemeldet", out[0])

@@ -23,6 +23,9 @@ export function invoiceTotals(items: { description: string; qty: number; unitPri
 /** yyyy-mm-dd → 12.10.2026 */
 export const fmtDate = (iso: string) => (/^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : iso);
 
+/** Zeitstempel (ISO, UTC) → lokales Datum 13.10.2026 */
+export const fmtDay = (iso: string) => new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+
 /** CSV für Excel (Semikolon, deutsches Dezimalkomma) als Download. */
 export function downloadCsv(filename: string, header: string[], rows: (string | number)[][]) {
   const cell = (v: string | number) => {
