@@ -7,7 +7,8 @@ from pathlib import Path
 
 BOT_DIR = Path(__file__).resolve().parent
 REPO_DIR = BOT_DIR.parent
-DATA_DIR = BOT_DIR / "data"
+# Speicherort für Logins (SQLite). Auf Railway per Volume dauerhaft machen: DATA_DIR=/data
+DATA_DIR = Path(os.environ.get("DATA_DIR") or BOT_DIR / "data")
 
 
 def _load_env_file(path: Path) -> None:

@@ -90,12 +90,14 @@ async def send_product_photo(update: Update, ctx: ContextTypes.DEFAULT_TYPE, pro
     cache: dict[str, str] = ctx.bot_data.setdefault("photo_ids", {})
     markup = InlineKeyboardMarkup(buttons) if buttons else None
     photo = cache.get(product.image)
-    if photo is None and product.image_file.exists():
-        photo = product.image_file.read_bytes()
     if photo is None:
+        # Lokal aus dem Repo; auf dem Server (nur bot/ deployt) direkt von der Website laden
+        photo = product.image_file.read_bytes() if product.image_file.exists() else f"{cfg(ctx).web_app_url}/{product.image}"
+    try:
+        msg = await update.effective_chat.send_photo(photo=photo, caption=caption, parse_mode=ParseMode.HTML, reply_markup=markup)
+    except TelegramError:
         await say(update, caption, buttons)
         return
-    msg = await update.effective_chat.send_photo(photo=photo, caption=caption, parse_mode=ParseMode.HTML, reply_markup=markup)
     if msg.photo:
         cache[product.image] = msg.photo[-1].file_id
 
