@@ -5,7 +5,7 @@ const QA = [
   { q: "Wer kann mitmachen?", a: "Nur offizielle TikTok Shop Creator. Ohne Shop-Creator-Status ist keine Registrierung möglich." },
   {
     q: "Wie lade ich Samples hoch?",
-    a: "Über unseren Telegram-Bot: TikTok-Shop-Link schicken, Einkaufspreis eingeben, Preisstufe wählen. Im Bot meldest du dich einmalig mit Username und Creator-Key an. Alternativ lädst du direkt im Dashboard hoch.",
+    a: "Über unseren Telegram-Bot: TikTok-Shop-Link schicken, Einkaufspreis eingeben, einen der drei Preisvorschläge nehmen oder deinen eigenen Preis festlegen. Im Bot meldest du dich einmalig mit Username und Creator-Key an. Alternativ lädst du direkt im Dashboard hoch.",
   },
   {
     q: "Muss ich meinen Steuersatz angeben?",

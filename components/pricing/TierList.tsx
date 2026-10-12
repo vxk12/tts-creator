@@ -26,7 +26,7 @@ export function TierList({
   const customExtra = purchase != null && rate != null && customPrice > 0 ? taxBack(purchase, customPrice, rate) : 0;
   const customSelected = value === "eigen";
   return (
-    <div role="radiogroup" aria-label="Preisstufe" className="grid gap-2">
+    <div role="radiogroup" aria-label="Preisvorschläge" className="grid gap-2">
       {TIERS.map((t) => {
         const price = purchase != null ? tierPrice(purchase, t.id) : null;
         const o = purchase != null && rate != null ? offer(purchase, t.id, rate) : null;

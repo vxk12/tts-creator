@@ -55,7 +55,7 @@ export function Steps() {
               <div>
                 <h3 className="text-2xl font-semibold tracking-tight">Sample hochladen</h3>
                 <p className="mt-2 leading-relaxed text-fg-muted">
-                  TikTok-Shop-Link schicken, Einkaufspreis eingeben, Preisstufe wählen. Oder alles direkt im Dashboard.
+                  TikTok-Shop-Link schicken, Einkaufspreis eingeben, Vorschlag nehmen oder eigenen Preis festlegen. Oder alles direkt im Dashboard.
                 </p>
               </div>
             </div>

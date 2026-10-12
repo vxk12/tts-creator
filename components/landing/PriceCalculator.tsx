@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { BRACKETS, MAX_RATE_PERCENT, fmtEUR, fmtPct, offer, parseMoney, parseRatePercent, type TierId } from "@/lib/pricing";
+import { useState } from "react";
+import { BRACKETS, CUSTOM_LABEL, MAX_RATE_PERCENT, chosenPrice, fmtEUR, fmtPct, parseMoney, parseRatePercent, priceOffer, tier, type PriceChoice } from "@/lib/pricing";
 import { Reveal } from "@/components/ui/Reveal";
 import { ButtonLink } from "@/components/ui/Button";
 import { TierList } from "@/components/pricing/TierList";
@@ -13,12 +13,14 @@ export function PriceCalculator() {
   const [priceText, setPriceText] = useState("27,00");
   const [mode, setMode] = useState<RateMode>({ kind: "preset", code: 0.3 });
   const [customPct, setCustomPct] = useState("35");
-  const [tierId, setTierId] = useState<TierId>("fair");
+  const [choice, setChoice] = useState<PriceChoice>("fair");
+  const [customText, setCustomText] = useState("");
 
   const purchaseRaw = parseMoney(priceText);
   const purchase = Number.isFinite(purchaseRaw) && purchaseRaw > 0 && purchaseRaw <= 100000 ? purchaseRaw : null;
   const rate = mode.kind === "preset" ? mode.code : parseRatePercent(customPct);
-  const selected = useMemo(() => (purchase != null && rate != null ? offer(purchase, tierId, rate) : null), [purchase, rate, tierId]);
+  const price = purchase != null ? chosenPrice(purchase, choice, customText) : null;
+  const selected = purchase != null && rate != null && price != null ? priceOffer(purchase, price, rate) : null;
   const priceInvalid = priceText.trim() !== "" && purchase == null;
   const customInvalid = mode.kind === "custom" && customPct.trim() !== "" && rate == null;
 
@@ -107,11 +109,11 @@ export function PriceCalculator() {
 
         <Reveal delay={0.1}>
           <div className="h-full rounded-card border border-white/[0.07] bg-ink-900 p-3 sm:p-4">
-            <TierList purchase={purchase} rate={rate} value={tierId} onChange={(id) => id !== "eigen" && setTierId(id)} name="calc-tier" />
+            <TierList purchase={purchase} rate={rate} value={choice} onChange={setChoice} name="calc-tier" custom={{ text: customText, onText: setCustomText }} />
 
             <div className="px-3 pb-3 pt-7 sm:px-4" aria-live="polite">
               <p className="text-sm text-fg-muted">
-                Stufe <span className="font-medium text-fg">{selected?.tier.label ?? "-"}</span>
+                Gewählt: <span className="font-medium text-fg">{choice === "eigen" ? CUSTOM_LABEL : tier(choice).label}</span>
               </p>
               <div className="mt-4 flex items-end justify-between gap-4">
                 <span className="text-sm font-medium text-fg">{selected && selected.taxSaving > 0 ? "Du bekommst bis zu" : "Du bekommst"}</span>
@@ -124,7 +126,13 @@ export function PriceCalculator() {
                 <dt className="text-fg-muted">später mit deiner Steuererklärung{rate != null ? ` (${fmtPct(rate)})` : ""}</dt>
               </dl>
               <p className="mt-4 text-sm text-fg-muted">
-                {selected && selected.taxSaving > 0 ? `Ohne Steuererklärung bleibt es bei ${fmtEUR(selected.price)}.` : "Bei 0 % Steuersatz kommt über die Steuer nichts dazu."}
+                {!selected
+                  ? "Gib deinen Preis ein, um die Rechnung zu sehen."
+                  : selected.taxSaving > 0
+                    ? `Ohne Steuererklärung bleibt es bei ${fmtEUR(selected.price)}.`
+                    : selected.diff <= 0
+                      ? "Über Einkaufspreis gibt es keinen Steuervorteil."
+                      : "Bei 0 % Steuersatz kommt über die Steuer nichts dazu."}
               </p>
               <p className="mt-2 text-xs text-fg-subtle">Schätzung, keine Steuerberatung.</p>
               <ButtonLink href="/registrieren" className="mt-6">

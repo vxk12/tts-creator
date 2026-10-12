@@ -2,7 +2,7 @@
  * Preislogik der Plattform.
  *
  * Steuersatz (Status_Code, Spalte C): kommt aus dem Onboarding.
- * Preisstufen (vorläufig): Verkaufspreis = Einkaufspreis × Faktor der Stufe.
+ * Preisvorschläge (vorläufig): Verkaufspreis = Einkaufspreis × Faktor der Stufe. Alternativ ein eigener Preis.
  * Echter Verlust = (Einkaufspreis − Verkaufspreis) × (1 − Steuersatz).
  * Angezeigt wird das Positive: Zurück nach Steuer = Einkaufspreis − echter Verlust = Verkaufspreis + Steuervorteil.
  *
@@ -123,5 +123,25 @@ export function parseRatePercent(value: string): number | null {
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" });
 export const fmtEUR = (n: number) => (Number.isFinite(n) ? eur.format(n) : "-");
 export const fmtPct = (rate: number) => `${(rate * 100).toLocaleString("de-DE", { maximumFractionDigits: 2 })} %`;
+/** Für einen beliebigen Verkaufspreis (Vorschlag oder eigener Preis): was sofort und was später über die Steuer kommt.
+ *  Über Einkaufspreis gibt es keinen Steuervorteil (taxSaving = 0). */
+export function priceOffer(purchase: number, price: number, rate: number) {
+  const taxSaving = Math.max(0, taxBack(purchase, price, rate));
+  return {
+    purchase: toCents(purchase) / 100,
+    price: toCents(price) / 100,
+    diff: (toCents(purchase) - toCents(price)) / 100,
+    taxSaving,
+    back: (toCents(price) + toCents(taxSaving)) / 100,
+  };
+}
+
+/** Verkaufspreis zur Auswahl: Vorschlag oder gültiger eigener Preis (sonst null). */
+export function chosenPrice(purchase: number, choice: PriceChoice, customText: string): number | null {
+  if (choice !== "eigen") return tierPrice(purchase, choice);
+  const p = parseMoney(customText);
+  return p > 0 && p <= 100000 ? p : null;
+}
+
 /** Steuersatz anzeigen; null = noch nicht festgelegt */
 export const fmtRate = (rate: number | null) => (rate == null ? "nicht festgelegt" : fmtPct(rate));

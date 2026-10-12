@@ -52,3 +52,12 @@ print(bad)`;
   const out = execFileSync("bot/.venv/bin/python", ["-c", py], { input: rows.join("\n") }).toString().trim();
   assert.equal(out, "0", `${out} Abweichungen bei ${rows.length} Fällen`);
 });
+
+test("Eigener Preis", async () => {
+  const { priceOffer, chosenPrice } = await import("../lib/pricing.ts");
+  assert.deepEqual(priceOffer(27, 19.9, 0.3), { purchase: 27, price: 19.9, diff: 7.1, taxSaving: 2.13, back: 22.03 });
+  assert.equal(priceOffer(27, 30, 0.3).taxSaving, 0); // über Einkaufspreis: kein Steuervorteil
+  assert.equal(chosenPrice(27, "fair", ""), 18.9);
+  assert.equal(chosenPrice(27, "eigen", "19,90"), 19.9);
+  assert.equal(chosenPrice(27, "eigen", "abc"), null);
+});
