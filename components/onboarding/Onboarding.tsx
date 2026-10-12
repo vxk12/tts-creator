@@ -11,10 +11,11 @@ import { Logo } from "@/components/ui/Logo";
 import { Notice } from "@/components/ui/Notice";
 import { RateSelector, emptyRate, rateError, rateFromState, stateFromRate, type RateState } from "@/components/pricing/RateSelector";
 import { TaxBreakdown } from "@/components/pricing/TaxBreakdown";
+import { Tour } from "./Tour";
 import { USER_RE, normalizeUser, register, session, telegramBotLink } from "@/lib/api";
 import { fmtRate } from "@/lib/pricing";
 
-type Step = "creator" | "user" | "tax" | "denied" | "success";
+type Step = "creator" | "user" | "tax" | "denied" | "tour" | "success";
 
 const STEPS = [
   { id: "creator", label: "Creator" },
@@ -45,7 +46,7 @@ export function Onboarding() {
     return () => clearTimeout(advance.current);
   }, []);
 
-  const order = (s: Step) => (s === "success" ? 3 : s === "denied" ? 0 : STEPS.findIndex((x) => x.id === s));
+  const order = (s: Step) => (s === "success" || s === "tour" ? 3 : s === "denied" ? 0 : STEPS.findIndex((x) => x.id === s));
 
   const go = (s: Step) => {
     setDir(order(s) >= order(step) ? 1 : -1);
@@ -87,7 +88,7 @@ export function Onboarding() {
       const res = await register({ isShopCreator: true, userId, statusCode });
       session.set({ userId: res.creator.userId, creatorKey: res.creatorKey });
       setResult({ userId: res.creator.userId, statusCode: res.creator.statusCode, creatorKey: res.creatorKey });
-      go("success");
+      go("tour");
     } catch (ex) {
       setError((ex as Error).message);
     } finally {
@@ -254,11 +255,17 @@ export function Onboarding() {
               </motion.section>
             )}
 
+            {step === "tour" && result && (
+              <motion.section key="tour" {...slide}>
+                <Tour userId={result.userId} rate={result.statusCode} onDone={() => go("success")} />
+              </motion.section>
+            )}
+
             {step === "success" && result && (
               <motion.section key="success" {...slide}>
                 <div className="text-center">
                   <Badge tone="neon"><CheckCircle size={30} weight="fill" /></Badge>
-                  <Head title={`Willkommen, @${result.userId}!`} text="Dein Konto ist angelegt. Verbinde jetzt Telegram, darüber lädst du deine Samples hoch." />
+                  <Head title="Letzter Schritt: Telegram verbinden" text={`Willkommen, @${result.userId}! Verbinde Telegram, dann kannst du dein erstes Sample hochladen.`} />
                 </div>
 
                 <div className="mt-10 rounded-card border border-white/[0.08] bg-ink-900 p-5 sm:p-6">
@@ -278,7 +285,7 @@ export function Onboarding() {
                       <code className="break-all font-mono text-sm text-neon">{result.creatorKey}</code>
                       <CopyButton text={result.creatorKey} />
                     </div>
-                    <p className="mt-2 text-xs text-fg-subtle">Speichere den Key gut. Du brauchst ihn für den Login im Bot und im Dashboard.</p>
+                    <p className="mt-2 text-xs text-fg-subtle">Speichere den Key gut. Du brauchst ihn für den Login im Bot und im Dashboard. Du findest ihn auch im Dashboard unter Konto.</p>
                   </div>
                 </div>
 
